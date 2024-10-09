@@ -1,0 +1,45 @@
+{
+  "name": "@ivuorinen/semver-ranger",
+  "version": "1.0.0",
+  "description": "Parses your package-lock.json to find lower and upper range for requirements",
+  "main": "index.js",
+  "bin": {
+    "semver-ranger": "dist/index.js"
+  },
+  "scripts": {
+    "build": "cross-env BABEL_ENV=commonjs babel index.js --out-dir dist/ --plugins @babel/plugin-transform-modules-commonjs",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ivuorinen/semver-ranger.git"
+  },
+  "keywords": [
+    "npm",
+    "package-lock",
+    "semver",
+    "range",
+    "calculator",
+    "cli"
+  ],
+  "author": "Ismo Vuorinen <https://github.com/ivuorinen>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/ivuorinen/semver-ranger/issues"
+  },
+  "homepage": "https://github.com/ivuorinen/semver-ranger#readme",
+  "dependencies": {
+    "cliui": "^8.0.1",
+    "package-lock-parser": "^1.0.0",
+    "semver": "^7.6.3"
+  },
+  "devDependencies": {
+    "@babel/cli": "^7.25.7",
+    "@babel/core": "^7.25.7",
+    "@babel/plugin-transform-modules-commonjs": "^7.25.7",
+    "@ivuorinen/base-configs": "^2.0.4",
+    "@types/node": "^22.7.4",
+    "cross-env": "^7.0.3",
+    "release-please": "^16.14.1"
+  }
+}

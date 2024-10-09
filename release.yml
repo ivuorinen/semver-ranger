@@ -1,0 +1,12 @@
+version: 2
+release:
+  types:
+    - patch
+    - minor
+    - major
+  changelog:
+    path: CHANGELOG.md
+    format: keep-a-changelog
+  github:
+    token: ${{ secrets.GITHUB_TOKEN }}
+    repo: ivuorinen/semver-ranger
