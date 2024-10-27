@@ -10,6 +10,9 @@ max_line_length = 100
 tab_width = 2
 trim_trailing_whitespace = true
 
+[{package.json,package-lock.json}]
+max_line_length = 3000
+
 [{*.markdown,*.md}]
 indent_size = 4
 tab_width = 4
