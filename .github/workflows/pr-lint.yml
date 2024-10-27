@@ -16,6 +16,7 @@ permissions:
 jobs:
   SuperLinter:
     uses: ivuorinen/ivuorinen/.github/workflows/pr-lint.yml@main
-    env:
-      VALIDATE_JAVASCRIPT_PRETTIER: false
-      JAVASCRIPT_ES_CONFIG_FILE: eslint.config.mjs
+    with:
+      env:
+        VALIDATE_JAVASCRIPT_PRETTIER: false
+        JAVASCRIPT_ES_CONFIG_FILE: eslint.config.mjs
