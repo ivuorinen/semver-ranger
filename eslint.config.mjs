@@ -7,6 +7,7 @@ export default [
   {
     rules: {
       // "no-unused-vars": "warn"
+      'max-len': ['error', { code: 100 }]
     }
   }
 ]
