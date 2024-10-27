@@ -2,9 +2,6 @@
 name: PR Lint
 
 on:
-  push:
-    branches-ignore: [master, main]
-    # Remove the line above to run when pushing to master
   pull_request:
     branches: [master, main]
 
@@ -13,9 +10,11 @@ permissions:
   packages: read
   statuses: write
 
+env:
+  VALIDATE_JAVASCRIPT_PRETTIER: false
+  JAVASCRIPT_ES_CONFIG_FILE: eslint.config.mjs
+
+
 jobs:
   SuperLinter:
-    env:
-      VALIDATE_JAVASCRIPT_PRETTIER: false
-      JAVASCRIPT_ES_CONFIG_FILE: eslint.config.mjs
     uses: ivuorinen/ivuorinen/.github/workflows/pr-lint.yml@main
