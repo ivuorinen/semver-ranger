@@ -3,8 +3,10 @@ import ivuorinenConfig from '@ivuorinen/eslint-config'
 export default [
   ...ivuorinenConfig,
 
-  // your modifications
   {
+    ignores: [
+      'dist/*'
+    ],
     rules: {
       // "no-unused-vars": "warn"
       'max-len': ['warn', { code: 100 }]
