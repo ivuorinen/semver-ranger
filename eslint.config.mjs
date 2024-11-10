@@ -5,7 +5,8 @@ export default [
 
   {
     ignores: [
-      'dist/*'
+      'dist/*',
+      '*.yml'
     ],
     rules: {
       // "no-unused-vars": "warn"
