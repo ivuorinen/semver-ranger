@@ -14,7 +14,7 @@ if (argv.includes('--version')) {
   process.exit(0)
 }
 
-function help() {
+function help () {
   ui.div(
     'Usage: npx semver-ranger\n' +
       '  [package-lock.json]\t  if provided, uses provided package-lock.json file\n' +

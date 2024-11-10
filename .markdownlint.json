@@ -1,3 +1,4 @@
 {
-  "extends": "@ivuorinen/markdownlint-config"
+  "extends": "@ivuorinen/markdownlint-config",
+  "line-length": true
 }

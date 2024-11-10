@@ -1,12 +1,16 @@
-import ivuorinenConfig from '@ivuorinen/eslint-config';
+import ivuorinenConfig from '@ivuorinen/eslint-config'
 
 export default [
   ...ivuorinenConfig,
 
-  // your modifications
   {
+    ignores: [
+      'dist/*',
+      '*.yml'
+    ],
     rules: {
       // "no-unused-vars": "warn"
+      'max-len': ['warn', { code: 100 }]
     }
   }
-];
+]
