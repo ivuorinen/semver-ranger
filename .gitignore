@@ -1,3 +1,4 @@
+megalinter-reports/*
 .php-cs-fixer.cache
 .php-cs-fixer.php
 composer.phar
