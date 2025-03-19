@@ -30,7 +30,7 @@
   },
   "homepage": "https://github.com/ivuorinen/semver-ranger#readme",
   "dependencies": {
-    "cliui": "^8.0.1",
+    "cliui": "^9.0.0",
     "package-lock-parser": "^1.0.0",
     "semver": "^7.6.3"
   },
