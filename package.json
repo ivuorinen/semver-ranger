@@ -41,7 +41,7 @@
     "@ivuorinen/eslint-config": "^0.5.4",
     "@ivuorinen/markdownlint-config": "^0.3.3",
     "@types/node": "^22.7.4",
-    "cross-env": "^7.0.3",
+    "cross-env": "^10.0.0",
     "eslint-plugin-prettier": "^5.2.1",
     "release-please": "^17.0.0"
   }
