@@ -39,7 +39,7 @@
     "@babel/core": "^7.25.7",
     "@babel/plugin-transform-modules-commonjs": "^7.25.7",
     "@ivuorinen/eslint-config": "^0.5.4",
-    "@ivuorinen/markdownlint-config": "^0.3.3",
+    "@ivuorinen/markdownlint-config": "^1.0.0",
     "@types/node": "^24.0.0",
     "cross-env": "^10.0.0",
     "eslint-plugin-prettier": "^5.2.1",
