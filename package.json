@@ -1,15 +1,22 @@
 {
   "name": "@ivuorinen/semver-ranger",
   "version": "1.0.0",
-  "description": "Parses your package-lock.json to find lower and upper range for requirements",
-  "main": "index.js",
+  "description": "Parses lockfiles to find engine and peer dependency version ranges across your full dependency tree",
+  "type": "module",
+  "main": "dist/cli.js",
   "bin": {
-    "semver-ranger": "dist/index.js"
+    "semver-ranger": "dist/cli.js"
   },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "prettier": "@ivuorinen/prettier-config",
   "scripts": {
-    "build": "cross-env BABEL_ENV=commonjs babel index.js --out-dir dist/ --plugins @babel/plugin-transform-modules-commonjs",
-    "lint": "eslint --fix .",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "lint": "prettier --write . && eslint --fix .",
+    "test": "node --import tsx/esm --test 'test/**/*.test.ts'",
+    "cov": "node --experimental-test-coverage --import tsx/esm --test 'test/**/*.test.ts'"
   },
   "repository": {
     "type": "git",
@@ -21,7 +28,9 @@
     "semver",
     "range",
     "calculator",
-    "cli"
+    "cli",
+    "engines",
+    "node-version"
   ],
   "author": "Ismo Vuorinen <https://github.com/ivuorinen>",
   "license": "MIT",
@@ -30,19 +39,25 @@
   },
   "homepage": "https://github.com/ivuorinen/semver-ranger#readme",
   "dependencies": {
+    "@yarnpkg/lockfile": "^1.1.0",
+    "@yarnpkg/parsers": "^3.0.0",
     "cliui": "^9.0.0",
-    "package-lock-parser": "^1.0.0",
-    "semver": "^7.6.3"
+    "env-paths": "^3.0.0",
+    "flat-cache": "^6.0.0",
+    "semver": "^7.6.3",
+    "yaml": "^2.0.0"
   },
   "devDependencies": {
-    "@babel/cli": "^7.25.7",
-    "@babel/core": "^7.25.7",
-    "@babel/plugin-transform-modules-commonjs": "^7.25.7",
     "@ivuorinen/eslint-config": "^1.0.0",
     "@ivuorinen/markdownlint-config": "^1.0.0",
+    "@ivuorinen/prettier-config": "^1.0.0",
+    "@ivuorinen/semantic-release-config": "^1.0.0",
     "@types/node": "^24.0.0",
-    "cross-env": "^10.0.0",
-    "eslint-plugin-prettier": "^5.2.1",
-    "release-please": "^17.0.0"
+    "@types/semver": "^7.5.0",
+    "@types/yarnpkg__lockfile": "^1.1.0",
+    "tsup": "^8.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0",
+    "typescript-eslint": "^8.0.0"
   }
 }
