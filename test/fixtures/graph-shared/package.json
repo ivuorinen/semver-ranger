@@ -1,0 +1,10 @@
+{
+  "name": "graph-shared-test",
+  "dependencies": {
+    "express": "^4.18.2",
+    "typescript": "^5.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  }
+}
