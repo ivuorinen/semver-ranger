@@ -3,7 +3,8 @@ name: PR Lint
 
 on:
   pull_request:
-    branches: [master, main]
+    branches: [main]
+  workflow_call: {}
 
 permissions:
   contents: read
@@ -77,8 +78,8 @@ jobs:
         uses: peter-evans/create-pull-request@98357b18bf14b5342f975ff684046ec3b2a07725 # v8
         with:
           token: ${{ secrets.PAT || secrets.GITHUB_TOKEN }}
-          commit-message: "[MegaLinter] Apply linters automatic fixes"
-          title: "[MegaLinter] Apply linters automatic fixes"
+          commit-message: '[MegaLinter] Apply linters automatic fixes'
+          title: '[MegaLinter] Apply linters automatic fixes'
           labels: bot
 
       - name: Create PR output
@@ -98,6 +99,6 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@28e16e81777b558cc906c8750092100bbb34c5e3 # v7
         with:
           branch: ${{ github.event.pull_request.head.ref || github.head_ref || github.ref }}
-          commit_message: "[MegaLinter] Apply linters fixes"
+          commit_message: '[MegaLinter] Apply linters fixes'
           commit_user_name: ivuorinen
           commit_user_email: 11024+ivuorinen@users.noreply.github.com
