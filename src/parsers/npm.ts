@@ -32,12 +32,16 @@ export function parseNpmLockfile(content: string): Package[] {
   if (lock.lockfileVersion >= 2) {
     const v2 = lock as NpmLockV2V3
     const result: Package[] = []
+    const seen = new Map<string, boolean>()
     for (const [key, entry] of Object.entries(v2.packages ?? {})) {
       if (key === '') continue // skip root
       const nameParts = key.split('node_modules/')
       const name = nameParts.at(-1)
       /* c8 ignore next */
       if (!name || !entry.version) continue
+      const dedupKey = `${name}@${entry.version}`
+      if (seen.has(dedupKey)) continue
+      seen.set(dedupKey, true)
       result.push({
         name,
         version: entry.version,

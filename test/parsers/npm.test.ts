@@ -48,4 +48,30 @@ describe('parseNpmLockfile', () => {
     // root entry should not appear or have no version
     assert.ok(!root || root.version !== '')
   })
+
+  it('deduplicates packages by name@version', () => {
+    const content = JSON.stringify({
+      lockfileVersion: 3,
+      packages: {
+        '': { name: 'root' },
+        'node_modules/lodash': {
+          name: 'lodash',
+          version: '4.17.21'
+        },
+        'node_modules/parent/node_modules/lodash': {
+          name: 'lodash',
+          version: '4.17.21'
+        },
+        'node_modules/other': {
+          name: 'other',
+          version: '1.0.0'
+        }
+      }
+    })
+    const packages = parseNpmLockfile(content)
+    const lodashEntries = packages.filter(p => p.name === 'lodash')
+    assert.strictEqual(lodashEntries.length, 1)
+    assert.strictEqual(lodashEntries[0].version, '4.17.21')
+    assert.strictEqual(packages.length, 2) // lodash + other, not 3
+  })
 })
