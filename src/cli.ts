@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { readFileSync, existsSync } from 'node:fs'
-import { resolve, basename } from 'node:path'
+import { resolve, basename, dirname } from 'node:path'
 import { parseArgs } from 'node:util'
 import { createRequire } from 'node:module'
 
@@ -103,6 +103,7 @@ async function main() {
     manager = detected.manager
   }
 
+  const projectDir = dirname(lockfilePath)
   const content = readFileSync(lockfilePath, 'utf8')
 
   let packages: Package[]
@@ -117,11 +118,11 @@ async function main() {
   }
 
   // Pass 1: local node_modules
-  packages = await resolveLocal(packages, cwd)
+  packages = await resolveLocal(packages, projectDir)
 
   // Pass 1.5: filter dev-only packages if --no-dev
   if (values['no-dev']) {
-    packages = filterDevPackages(packages, cwd, content, lockfileType)
+    packages = filterDevPackages(packages, projectDir, content, lockfileType)
   }
 
   // Pass 2: registry (skipped if --offline)
@@ -131,7 +132,7 @@ async function main() {
 
   // Analyze
   const engineTargets = analyzeEngines(packages, manager)
-  const peerTargetNames = detectPeerTargets(cwd, (values.check as string[]) ?? [])
+  const peerTargetNames = detectPeerTargets(projectDir, (values.check as string[]) ?? [])
   const peerTargets = analyzePeers(packages, peerTargetNames)
   const allTargets = [...engineTargets, ...peerTargets]
 
