@@ -108,6 +108,8 @@ function renderTarget(target: AnalysisTarget, allPackages: Package[], showAll: b
     const rangesByPkg = new Map(target.ranges.map(r => [r.package, r]))
     for (const entry of target.latestConflicts) {
       const installed = rangesByPkg.get(entry.package)
+      // columns intentionally inverted: installed in COL_VER, latest in COL_LATEST
+      // to show which latest version is blocked by the installed range
       ui.div(
         { text: `  ⚠  ${entry.package}`, width: COL_PKG },
         { text: installed?.version ?? '—', width: COL_VER },
