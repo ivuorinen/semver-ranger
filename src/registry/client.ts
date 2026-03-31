@@ -2,7 +2,10 @@ import type { Package } from '../types.js'
 import { getVersionData, setVersionData, getLatestData, setLatestData } from '../cache/index.js'
 
 const REGISTRY = 'https://registry.npmjs.org'
-const CONCURRENCY = 8
+// CONCURRENCY is per-package; each package triggers 2 parallel fetches
+// (fetchManifest + fetchLatest), so actual max requests = CONCURRENCY * 2.
+// Set to 4 so we stay within ~8 total concurrent network requests.
+const CONCURRENCY = 4
 
 interface ResolveOptions {
   offline: boolean
@@ -65,8 +68,9 @@ async function fetchLatest(name: string): Promise<(RegistryManifest & { version:
     const res = await fetch(url)
     if (!res.ok) return null
     const data = (await res.json()) as RegistryManifest & { version: string }
+    if (!data.version) return null
     const entry = {
-      version: data.version ?? '',
+      version: data.version,
       engines: data.engines,
       peerDependencies: data.peerDependencies
     }
@@ -111,7 +115,20 @@ export async function resolveRegistry(
   packages: Package[],
   options: ResolveOptions
 ): Promise<Package[]> {
-  if (options.offline) return packages
+  if (options.offline) {
+    return packages.map(pkg => {
+      const manifest = getVersionData(`${pkg.name}@${pkg.version}`)
+      const latest = getLatestData(pkg.name)
+      return {
+        ...pkg,
+        ...(manifest?.engines && { engines: manifest.engines }),
+        ...(manifest?.peerDependencies && { peerDependencies: manifest.peerDependencies }),
+        ...(latest?.version && { latestVersion: latest.version }),
+        ...(latest?.engines && { latestEngines: latest.engines }),
+        ...(latest?.peerDependencies && { latestPeerDependencies: latest.peerDependencies })
+      }
+    })
+  }
 
   const result: Package[] = []
   for (let i = 0; i < packages.length; i += CONCURRENCY) {

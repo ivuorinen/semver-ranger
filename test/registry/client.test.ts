@@ -137,6 +137,63 @@ describe('registry client', () => {
     assert.strictEqual(result[0].latestVersion, '2.0.0')
   })
 
+  it('fetchLatest: missing version in response → latestVersion undefined (Fix 6)', async () => {
+    const { resolveRegistry } = await import('../../src/registry/client.js')
+    ;(globalThis as Record<string, unknown>).fetch = async (input: string | URL | Request) => {
+      const url = String(input)
+      if (url.endsWith('/latest')) {
+        // Response body has no version field
+        return {
+          ok: true,
+          json: async () => ({ engines: { node: '>=18' } })
+        } as Response
+      }
+      return { ok: false, json: async () => ({}) } as Response
+    }
+    try {
+      const result = await resolveRegistry(
+        [{ name: `test-fix6-${Date.now()}`, version: '1.0.0' }],
+        { offline: false }
+      )
+      assert.ok(
+        typeof result[0].latestVersion === 'undefined',
+        'latestVersion should be undefined when version field is absent'
+      )
+    } finally {
+      delete (globalThis as Record<string, unknown>).fetch
+    }
+  })
+
+  it('offline mode enriches from cache instead of skipping (Fix 8)', async () => {
+    const { setVersionData, setLatestData } = await import('../../src/cache/index.js')
+    const { resolveRegistry } = await import('../../src/registry/client.js')
+    const name = `offline-cache-${Date.now()}`
+    setVersionData(`${name}@1.0.0`, {
+      engines: { node: '>=16' },
+      peerDependencies: { react: '>=17' }
+    })
+    setLatestData(name, {
+      version: '3.0.0',
+      engines: { node: '>=20' },
+      peerDependencies: { react: '>=18' }
+    })
+
+    let fetchCalled = false
+    ;(globalThis as Record<string, unknown>).fetch = async () => {
+      fetchCalled = true
+      return { ok: true, json: async () => ({}) } as Response
+    }
+    try {
+      const result = await resolveRegistry([{ name, version: '1.0.0' }], { offline: true })
+      assert.strictEqual(fetchCalled, false, 'fetch must not be called in offline mode')
+      assert.strictEqual(result[0].engines?.node, '>=16')
+      assert.strictEqual(result[0].latestVersion, '3.0.0')
+      assert.strictEqual(result[0].latestEngines?.node, '>=20')
+    } finally {
+      delete (globalThis as Record<string, unknown>).fetch
+    }
+  })
+
   it('processBatch: >CONCURRENCY packages are all returned', async () => {
     const { resolveRegistry } = await import('../../src/registry/client.js')
     globalThis.fetch = async () => ({ ok: false, json: async () => ({}) }) as Response
