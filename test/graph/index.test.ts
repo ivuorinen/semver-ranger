@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs'
 import { describe, it } from 'node:test'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { filterDevPackages } from '../../src/graph/index.js'
+import { filterDevPackages, buildEdgeMap } from '../../src/graph/index.js'
 import type { Package } from '../../src/types.js'
 
 const currentDir = dirname(fileURLToPath(import.meta.url))
@@ -92,5 +92,23 @@ describe('filterDevPackages', () => {
     const packages = [{ name: 'express', version: '4.18.2' }]
     const result = filterDevPackages(packages, '/nonexistent-12345', '{}', 'npm')
     assert.deepStrictEqual(result, packages)
+  })
+
+  it('yarn-classic: scoped packages appear as keys in edge map', () => {
+    const yarnClassicContent = [
+      '"@scope/pkg@^1.0.0":',
+      '  version "1.0.0"',
+      '  resolved "https://registry.example.com/@scope/pkg/-/pkg-1.0.0.tgz"',
+      '  dependencies:',
+      '    lodash "^4.0.0"',
+      '',
+      'lodash@^4.0.0:',
+      '  version "4.17.21"',
+      '  resolved "https://registry.example.com/lodash/-/lodash-4.17.21.tgz"'
+    ].join('\n')
+
+    const edges = buildEdgeMap(yarnClassicContent, 'yarn-classic')
+    assert.ok(edges.has('@scope/pkg'), '@scope/pkg must appear as a key in the edge map')
+    assert.deepStrictEqual(edges.get('@scope/pkg'), ['lodash'])
   })
 })

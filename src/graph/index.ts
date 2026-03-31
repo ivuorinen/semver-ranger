@@ -36,7 +36,7 @@ interface PnpmLock {
  * @param {LockfileType} type The lockfile format.
  * @returns {Map<string, string[]>} Map of package name to dependency names.
  */
-function buildEdgeMap(content: string, type: LockfileType): Map<string, string[]> {
+export function buildEdgeMap(content: string, type: LockfileType): Map<string, string[]> {
   const edges = new Map<string, string[]>()
 
   if (type === 'npm') {
@@ -74,14 +74,14 @@ function buildEdgeMap(content: string, type: LockfileType): Map<string, string[]
     for (const line of content.split('\n')) {
       if (!line.startsWith(' ') && line.match(/^"?[^#]/u)) {
         if (currentPkg !== null) edges.set(currentPkg, [...deps])
-        const m = line.match(/^"?([^@"\s]+)/u)
+        const m = line.match(/^"?(@[^/"\s]+\/[^@"\s]+|[^@"\s]+)@/u)
         currentPkg = m ? m[1] : /* c8 ignore next */ null
         inDeps = false
         deps.length = 0
       } else if (line.trim() === 'dependencies:') {
         inDeps = true
       } else if (inDeps && line.match(/^ {4}"?[^" ]/u)) {
-        const m = line.match(/^ {4}"?([^"@\s]+)/u)
+        const m = line.match(/^ {4}"?([^"\s]+)\s/u)
         if (m) deps.push(m[1])
         /* c8 ignore next 3 */
       } else if (inDeps && line.trim() === '') {
@@ -104,8 +104,9 @@ function buildEdgeMap(content: string, type: LockfileType): Map<string, string[]
 function bfs(roots: string[], edges: Map<string, string[]>): Set<string> {
   const visited = new Set<string>()
   const queue = [...roots]
-  while (queue.length > 0) {
-    const name = queue.shift()!
+  let qi = 0
+  while (qi < queue.length) {
+    const name = queue[qi++]
     if (visited.has(name)) continue
     visited.add(name)
     for (const dep of edges.get(name) ?? /* c8 ignore next */ []) {
