@@ -11,6 +11,7 @@ const COL_RANGE = Math.max(WIDTH - COL_PKG - COL_VER - COL_LATEST - 6, 20)
 
 /**
  * Creates a new cliui instance sized to the current terminal width.
+ * @returns {ReturnType<typeof cliui>} A cliui instance.
  */
 function makeUi(): ReturnType<typeof cliui> {
   return cliui({ width: WIDTH })
@@ -18,10 +19,11 @@ function makeUi(): ReturnType<typeof cliui> {
 
 /**
  * Renders a single package row into a cliui layout.
- * @param ui The cliui instance to write into.
- * @param entry The range entry to render.
- * @param latestVersion Latest known version string for the package.
- * @param prefix Optional prefix prepended to the package name column.
+ * @param {ReturnType<typeof makeUi>} ui The cliui instance to write into.
+ * @param {RangeEntry} entry The range entry to render.
+ * @param {string} latestVersion Latest known version string for the package.
+ * @param {string} prefix Optional prefix prepended to the package name column.
+ * @returns {void}
  */
 function renderPackageRow(
   ui: ReturnType<typeof makeUi>,

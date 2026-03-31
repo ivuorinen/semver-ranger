@@ -21,13 +21,5 @@ export default [
       'no-console': 'off',
       'n/no-process-exit': 'off'
     }
-  },
-
-  {
-    files: ['src/output/table.ts'],
-    rules: {
-      'jsdoc/require-param-type': 'off',
-      'jsdoc/require-returns': 'off'
-    }
   }
 ]
