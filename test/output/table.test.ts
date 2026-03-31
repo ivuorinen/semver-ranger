@@ -67,6 +67,24 @@ describe('renderOutput', () => {
     assert.ok(output.includes('lodash'), 'lodash appears in --all output')
   })
 
+  it('shows no-constraint message (not conflict) when ranges is empty', () => {
+    const noConstraints: AnalysisTarget[] = [
+      {
+        name: 'node',
+        source: 'engines',
+        ranges: [],
+        intersection: null,
+        conflicts: [],
+        latestRanges: [],
+        latestIntersection: null,
+        latestConflicts: []
+      }
+    ]
+    const output = renderOutput(noConstraints, 0, [], 'package-lock.json', 'npm', false, false)
+    assert.ok(output.includes('no constraints found'), 'shows no-constraint message')
+    assert.ok(!output.includes('conflict'), 'does not show conflict warning')
+  })
+
   it('renders target with no current ranges', () => {
     const latestOnly: AnalysisTarget[] = [
       {

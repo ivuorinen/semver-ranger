@@ -40,6 +40,22 @@ function renderPackageRow(
 }
 
 /**
+ * Resolves the display text for a safe-range cell.
+ * @param {string | null} intersection Computed intersection or null.
+ * @param {number} rangeCount Number of contributing ranges.
+ * @returns {string} Display string for the safe-range cell.
+ */
+function safeRangeText(intersection: string | null, rangeCount: number): string {
+  if (intersection !== null) {
+    return intersection
+  }
+  if (rangeCount === 0) {
+    return '— (no constraints found)'
+  }
+  return '⚠  conflict — no safe range'
+}
+
+/**
  * Renders a single analysis target section as a formatted string.
  * @param {AnalysisTarget} target The analysis target to render.
  * @param {Package[]} allPackages All packages in the lockfile.
@@ -55,11 +71,11 @@ function renderTarget(target: AnalysisTarget, allPackages: Package[], showAll: b
 
   ui.div(
     { text: '  Safe range (installed):', width: 30 },
-    { text: target.intersection ?? '⚠  conflict — no safe range', width: 50 }
+    { text: safeRangeText(target.intersection, target.ranges.length), width: 50 }
   )
   ui.div(
     { text: '  Safe range (latest):', width: 30 },
-    { text: target.latestIntersection ?? '⚠  conflict — no safe range', width: 50 }
+    { text: safeRangeText(target.latestIntersection, target.latestRanges.length), width: 50 }
   )
 
   if (target.ranges.length > 0) {
@@ -71,8 +87,9 @@ function renderTarget(target: AnalysisTarget, allPackages: Package[], showAll: b
       { text: 'Latest', width: COL_LATEST },
       { text: 'Range', width: COL_RANGE }
     )
+    const latestByPkg = new Map(target.latestRanges.map(r => [r.package, r]))
     for (const entry of target.ranges) {
-      const latest = target.latestRanges.find(r => r.package === entry.package)
+      const latest = latestByPkg.get(entry.package)
       renderPackageRow(ui, entry, latest?.version ?? '—')
     }
   }
@@ -88,8 +105,9 @@ function renderTarget(target: AnalysisTarget, allPackages: Package[], showAll: b
   if (target.latestConflicts.length > 0) {
     ui.div('')
     ui.div(`  ⚠  Conflicts at latest (${target.latestConflicts.length} package(s) block upgrade):`)
+    const rangesByPkg = new Map(target.ranges.map(r => [r.package, r]))
     for (const entry of target.latestConflicts) {
-      const installed = target.ranges.find(r => r.package === entry.package)
+      const installed = rangesByPkg.get(entry.package)
       ui.div(
         { text: `  ⚠  ${entry.package}`, width: COL_PKG },
         { text: installed?.version ?? '—', width: COL_VER },
