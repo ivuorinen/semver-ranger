@@ -11,26 +11,24 @@ const COL_RANGE = Math.max(WIDTH - COL_PKG - COL_VER - COL_LATEST - 6, 20)
 
 /**
  * Creates a new cliui instance sized to the current terminal width.
- * @returns {ReturnType<typeof cliui>} A new cliui instance.
  */
-function makeUi() {
+function makeUi(): ReturnType<typeof cliui> {
   return cliui({ width: WIDTH })
 }
 
 /**
  * Renders a single package row into a cliui layout.
- * @param {ReturnType<typeof makeUi>} ui The cliui instance to write into.
- * @param {RangeEntry} entry The range entry to render.
- * @param {string} latestVersion Latest known version string for the package.
- * @param {string} prefix Optional prefix prepended to the package name column.
- * @returns {void}
+ * @param ui The cliui instance to write into.
+ * @param entry The range entry to render.
+ * @param latestVersion Latest known version string for the package.
+ * @param prefix Optional prefix prepended to the package name column.
  */
 function renderPackageRow(
   ui: ReturnType<typeof makeUi>,
   entry: RangeEntry,
   latestVersion: string,
   prefix = '  '
-) {
+): void {
   ui.div(
     { text: prefix + entry.package, width: COL_PKG },
     { text: entry.version, width: COL_VER },
