@@ -10,7 +10,6 @@
   "engines": {
     "node": ">=22.0.0"
   },
-  "prettier": "@ivuorinen/prettier-config",
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",

@@ -113,7 +113,7 @@ function buildEdgeMap(content: string, type: LockfileType): Map<string, string[]
 Returns a map from package name to list of direct dependency names (not versioned — just names). Format-specific logic:
 
 | Format       | Edge source                                     |
-|--------------|-------------------------------------------------|
+| ------------ | ----------------------------------------------- |
 | npm v3       | `packages["node_modules/X"].dependencies` keys  |
 | npm v1       | `dependencies["X"].requires` keys               |
 | pnpm v6/v9   | `packages["/X@ver"].dependencies` keys          |
@@ -123,8 +123,8 @@ Returns a map from package name to list of direct dependency names (not versione
 #### Algorithm
 
 1. Read `package.json` from `projectDir`:
-    - `prodRoots = Object.keys(dependencies ?? {})`
-    - `devRoots = Object.keys(devDependencies ?? {})`
+   - `prodRoots = Object.keys(dependencies ?? {})`
+   - `devRoots = Object.keys(devDependencies ?? {})`
 2. Call `buildEdgeMap(content, type)` to get the graph
 3. BFS from `prodRoots` → `productionSet: Set<string>`
 4. BFS from `devRoots` → `devOnlySet: Set<string>` (subtract productionSet)
@@ -308,7 +308,7 @@ Created:
 All existing 40 tests must continue to pass. New tests added:
 
 | File                              | Covers                                                                               |
-|-----------------------------------|--------------------------------------------------------------------------------------|
+| --------------------------------- | ------------------------------------------------------------------------------------ |
 | `test/graph/index.test.ts`        | npm/pnpm graph traversal, prod/dev split, shared deps retained, missing package.json |
 | `test/parsers/pnpm.test.ts`       | Extended: v9 engine data now present                                                 |
 | `test/analyzer/intersect.test.ts` | Extended: order-independence verified                                                |

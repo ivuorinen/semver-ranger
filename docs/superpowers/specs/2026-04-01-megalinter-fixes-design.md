@@ -9,7 +9,7 @@ PR #74 (`feat!: rewrite in TypeScript`) fails MegaLinter CI. 7 linter categories
 ## Failing Linters & Root Causes
 
 | Linter                    | Count    | Root cause                                                                    |
-|---------------------------|----------|-------------------------------------------------------------------------------|
+| ------------------------- | -------- | ----------------------------------------------------------------------------- |
 | `ts-standard`             | many     | `strict-boolean-expressions`, `restrict-template-expressions`, spacing/indent |
 | `jscpd`                   | 5 clones | Repeated fetch-mock blocks in test files                                      |
 | `editorconfig-checker`    | 17 lines | `CLAUDE.md` exceeds `max_line_length = 80` for `*.md`                         |
@@ -29,7 +29,7 @@ PR #74 (`feat!: rewrite in TypeScript`) fails MegaLinter CI. 7 linter categories
 **Step 2 — manual semantic fixes** in affected files:
 
 | File                                 | Violations                         | Fix pattern                   |
-|--------------------------------------|------------------------------------|-------------------------------|
+| ------------------------------------ | ---------------------------------- | ----------------------------- |
 | `src/analyzer/engines.ts:14,31`      | nullable string in boolean         | `if (x)` → `if (x != null)`   |
 | `src/analyzer/intersect.ts:26-28,37` | nullable obj/any in boolean        | `if (x)` → `if (x != null)`   |
 | `src/analyzer/peers.ts:69,73`        | nullable string in boolean         | `if (x)` → `if (x != null)`   |
