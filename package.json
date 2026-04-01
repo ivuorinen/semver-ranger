@@ -42,7 +42,7 @@
     "@yarnpkg/lockfile": "^1.1.0",
     "@yarnpkg/parsers": "^3.0.0",
     "cliui": "^9.0.0",
-    "env-paths": "^3.0.0",
+    "env-paths": "^4.0.0",
     "flat-cache": "^6.0.0",
     "semver": "^7.6.3",
     "yaml": "^2.0.0"
