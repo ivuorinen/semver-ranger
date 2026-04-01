@@ -23,7 +23,7 @@ semver-ranger [lockfile-path] [options]
 ### Flags
 
 | Flag            | Description                                                            |
-| --------------- | ---------------------------------------------------------------------- |
+|-----------------|------------------------------------------------------------------------|
 | `--offline`     | Skip registry; use node_modules + cache only                           |
 | `--check <pkg>` | Add a package to peer dep analysis (repeatable)                        |
 | `--no-dev`      | Exclude devDependencies from analysis                                  |
@@ -111,7 +111,7 @@ interface RangeEntry {
 Each parser is a **pure function**: `(fileContent: string) => Package[]`. No engines reading, no registry calls, no semver logic inside parsers.
 
 | Lockfile              | Package                                    | Notes                                                    |
-| --------------------- | ------------------------------------------ | -------------------------------------------------------- |
+|-----------------------|--------------------------------------------|----------------------------------------------------------|
 | `package-lock.json`   | raw `JSON.parse` + manual TypeScript types | v2/v3: `packages` hash; v1 fallback: `dependencies` hash |
 | `yarn.lock` (classic) | `@yarnpkg/lockfile`                        | Detected by absence of `__metadata:`                     |
 | `yarn.lock` (berry)   | `@yarnpkg/parsers`                         | Detected by presence of `__metadata:`                    |
@@ -151,7 +151,7 @@ Concurrency limit: 8 parallel fetches via `Promise.all` with a semaphore.
 ### Stores (via `flat-cache`)
 
 | Store      | Key            | TTL | Rationale                            |
-| ---------- | -------------- | --- | ------------------------------------ |
+|------------|----------------|-----|--------------------------------------|
 | `versions` | `name@version` | ∞   | Published versions are immutable     |
 | `latest`   | `name`         | 24h | Latest tag changes with new releases |
 
@@ -171,9 +171,11 @@ TTL checked manually: `latest` entries store `{ data, cachedAt }`, stale entries
 
 - Reads the **project's own `package.json`** (not the lockfile) for direct deps
 - Cross-references against well-known list:
+
   ```typescript
   const WELL_KNOWN_PEERS = ['typescript', 'react', 'react-dom', 'vue', 'svelte', 'webpack', 'vite', 'rollup', 'esbuild', 'jest', 'vitest', 'next', 'nuxt', 'astro']
   ```
+
 - Merges with `--check` additions from CLI
 - For each target, collects all peer dep ranges declared across the dep tree
 
@@ -304,7 +306,7 @@ test/
 ### Coverage by module
 
 | Module            | Test focus                                                                         |
-| ----------------- | ---------------------------------------------------------------------------------- |
+|-------------------|------------------------------------------------------------------------------------|
 | Parsers           | Correct `Package[]` from fixtures; yarn classic/berry detection                    |
 | `detect.ts`       | Lockfile found from directory; priority order respected                            |
 | `engines.ts`      | Intersection correct; `null` for disjoint; `*` ignored                             |

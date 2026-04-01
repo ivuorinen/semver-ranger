@@ -100,10 +100,10 @@ editorconfig-checker is already ✅.
 
 ## Files Changed
 
-| File | Action |
-|------|--------|
-| `.mega-linter.yml` | Update DISABLE_LINTERS, add KINGFISHER + V8R excludes, update markdownlint config ref |
-| `.markdownlint-cli2.jsonc` | Create — cli2 config with MD013 override for docs/superpowers/ |
+| File                       | Action                                                                                |
+|----------------------------|---------------------------------------------------------------------------------------|
+| `.mega-linter.yml`         | Update DISABLE_LINTERS, add KINGFISHER + V8R excludes, update markdownlint config ref |
+| `.markdownlint-cli2.jsonc` | Create — cli2 config with MD013 override for docs/superpowers/                        |
 
 ## Verification
 
