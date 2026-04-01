@@ -1,7 +1,6 @@
 # README Design Spec — semver-ranger
 
-**Date:** 2026-04-02
-**Scope:** Create `README.md` from scratch
+**Date:** 2026-04-02 **Scope:** Create `README.md` from scratch
 
 ---
 
@@ -68,21 +67,22 @@ semver-ranger [lockfile-path] [options]
 
 Flag reference table:
 
-| Flag | Description |
-|---|---|
-| `--offline` | Skip registry; use `node_modules` + cache only |
-| `--check <pkg>` | Add a package to peer dep analysis (repeatable) |
-| `--no-dev` | Exclude devDependencies from analysis |
-| `--all` | Show all packages, including those with no constraints |
-| `--json` | Output raw JSON instead of tables |
-| `--version` | Print version and exit |
-| `--help` | Print usage and exit |
+| Flag            | Description                                            |
+| --------------- | ------------------------------------------------------ |
+| `--offline`     | Skip registry; use `node_modules` + cache only         |
+| `--check <pkg>` | Add a package to peer dep analysis (repeatable)        |
+| `--no-dev`      | Exclude devDependencies from analysis                  |
+| `--all`         | Show all packages, including those with no constraints |
+| `--json`        | Output raw JSON instead of tables                      |
+| `--version`     | Print version and exit                                 |
+| `--help`        | Print usage and exit                                   |
 
 Exit codes: `0` success, `1` unrecoverable error.
 
 ### 7. Example output
 
 A representative ASCII table showing:
+
 - A few packages with engine ranges
 - The computed intersection row
 - At least one conflict row (with a clear visual distinction)
@@ -113,13 +113,13 @@ npm install
 
 Commands table:
 
-| Command | Description |
-|---|---|
+| Command         | Description                                  |
+| --------------- | -------------------------------------------- |
 | `npm run build` | Compile TypeScript to `dist/` via tsup (ESM) |
-| `npm run dev` | Watch mode compilation |
-| `npm run lint` | Prettier format + ESLint auto-fix |
-| `npm run test` | Run tests with Node's native test runner |
-| `npm run cov` | Test coverage (experimental) |
+| `npm run dev`   | Watch mode compilation                       |
+| `npm run lint`  | Prettier format + ESLint auto-fix            |
+| `npm run test`  | Run tests with Node's native test runner     |
+| `npm run cov`   | Test coverage (experimental)                 |
 
 ### 11. Architecture
 
