@@ -29,7 +29,7 @@ describe('parseNpmLockfile', () => {
   })
 
   it('parses v1 lockfile', () => {
-    assertExpressVersion('package-lock-v1.json', '4.18.2')
+    assertExpressVersion('package-lock-v1.json', '4.19.2')
   })
 
   it('skips entries without version', () => {

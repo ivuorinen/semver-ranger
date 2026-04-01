@@ -20,6 +20,9 @@ trim_trailing_whitespace = false
 [CLAUDE.md]
 max_line_length = off
 
+[docs/**]
+max_line_length = off
+
 [.github/**/{*.markdown,*.md,*.yml}]
 max_line_length = 3000
 
