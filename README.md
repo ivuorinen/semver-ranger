@@ -126,3 +126,25 @@ npm install
 | `npm run lint` | Prettier format + ESLint auto-fix |
 | `npm run test` | Run tests with Node's native test runner |
 | `npm run cov` | Test coverage (experimental) |
+
+## Architecture
+
+```
+src/
+  cli.ts          Entry point — argument parsing and pipeline orchestration
+  types.ts        Shared TypeScript type definitions
+  analyzer/       Semver intersection logic for engines and peer constraints
+  parsers/        Lockfile parsers: npm, yarn-classic, yarn-berry, pnpm, auto-detect
+  registry/       npm registry client and local node_modules fallback
+  graph/          Dependency graph traversal and devDependency filtering
+  cache/          flat-cache wrapper for registry responses
+  output/         CLI table and JSON rendering
+```
+
+Tests live in `test/`, mirroring the `src/` structure. Fixtures for each lockfile format
+are in `test/fixtures/`. The test runner is Node's built-in `node --test` with `tsx/esm`
+for TypeScript support — no Jest or Vitest.
+
+## License
+
+MIT — [Ismo Vuorinen](https://github.com/ivuorinen)
