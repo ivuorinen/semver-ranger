@@ -33,6 +33,10 @@
   ],
   "author": "Ismo Vuorinen <https://github.com/ivuorinen>",
   "license": "MIT",
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
   "bugs": {
     "url": "https://github.com/ivuorinen/semver-ranger/issues"
   },
