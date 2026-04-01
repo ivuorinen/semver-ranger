@@ -14,13 +14,11 @@ DISABLE_LINTERS:
   - JAVASCRIPT_ES
   - JAVASCRIPT_STANDARD
   - REPOSITORY_DEVSKIM
+  - REPOSITORY_KINGFISHER
   - SPELL_CSPELL
   - SPELL_LYCHEE
   - TYPESCRIPT_ES
   - TYPESCRIPT_STANDARD
-
-# Repository linters need their own exclude (global FILTER_REGEX_EXCLUDE does not apply)
-REPOSITORY_KINGFISHER_FILTER_REGEX_EXCLUDE: node_modules
 
 # Skip test fixtures — they intentionally use old package versions for parser tests
 REPOSITORY_TRIVY_ARGUMENTS: --skip-dirs test/fixtures
