@@ -17,6 +17,9 @@ max_line_length = 3000
 max_line_length = 80
 trim_trailing_whitespace = false
 
+[CLAUDE.md]
+max_line_length = off
+
 [.github/**/{*.markdown,*.md,*.yml}]
 max_line_length = 3000
 
