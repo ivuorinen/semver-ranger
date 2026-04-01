@@ -133,3 +133,5 @@ Homestead.json
 .env*.local
 .vercel
 next-env.d.ts
+node-compile-cache
+tsx-501/

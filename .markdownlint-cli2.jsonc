@@ -1,0 +1,14 @@
+{
+  "config": {
+    "extends": "@ivuorinen/markdownlint-config",
+    "line-length": true
+  },
+  "overrides": [
+    {
+      "globs": ["docs/superpowers/**/*.md"],
+      "config": {
+        "MD013": false
+      }
+    }
+  ]
+}
