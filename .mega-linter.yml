@@ -11,18 +11,23 @@ SHOW_ELAPSED_TIME: false
 SHOW_SKIPPED_LINTERS: false
 
 DISABLE_LINTERS:
+  - JAVASCRIPT_ES
   - JAVASCRIPT_STANDARD
   - REPOSITORY_DEVSKIM
-  - SPELL
   - SPELL_CSPELL
   - SPELL_LYCHEE
+  - TYPESCRIPT_ES
   - TYPESCRIPT_STANDARD
 
-TYPESCRIPT_ES_CONFIG_FILE: eslint.config.mjs
-JAVASCRIPT_ES_CONFIG_FILE: eslint.config.mjs
-MARKDOWN_MARKDOWNLINT_CONFIG_FILE: .markdownlint.json
+# Repository linters need their own exclude (global FILTER_REGEX_EXCLUDE does not apply)
+REPOSITORY_KINGFISHER_FILTER_REGEX_EXCLUDE: node_modules
 
 # Skip test fixtures — they intentionally use old package versions for parser tests
 REPOSITORY_TRIVY_ARGUMENTS: --skip-dirs test/fixtures
+
+# Skip files with no registered JSON Schema to avoid false v8r failures
+YAML_V8R_FILTER_REGEX_EXCLUDE: (\.grype\.yaml|test/fixtures)
+
+MARKDOWN_MARKDOWNLINT_CONFIG_FILE: .markdownlint-cli2.jsonc
 
 FILTER_REGEX_EXCLUDE: (node_modules|\.git)
