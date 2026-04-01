@@ -58,3 +58,36 @@ Run from your project directory to auto-detect the lockfile, or pass a path expl
 | `--help` | Print usage and exit |
 
 Exit codes: `0` success, `1` unrecoverable error.
+
+## Example output
+
+```
+semver-ranger — package-lock.json (npm) — 214 packages analyzed
+────────────────────────────────────────────────────────────────────────────────
+node  (engines)  ·  6 packages declare a constraint
+
+  Package                      Installed    Latest       Range
+  typescript                   5.4.5        5.6.3        >=4.7
+  tsx                          4.19.2       4.19.2       >=18.0.0
+  esbuild                      0.21.5       0.24.0       >=12.0.0
+  flat-cache                   6.0.0        6.1.4        >=18
+  env-paths                    4.0.0        4.0.0        >=18
+  semver                       7.6.3        7.6.3        >=10.0.0
+
+  Safe range (installed):       >=18
+  Safe range (latest):          >=18
+
+────────────────────────────────────────────────────────────────────────────────
+react  (peerDependencies)  ·  3 packages declare a constraint
+
+  Package                      Installed    Latest       Range
+  @testing-library/react       16.0.0       16.3.0       ^18.0.0 || ^19.0.0
+  react-dom                    18.3.1       19.1.0       ^18 || ^19
+  some-legacy-lib              2.4.1        3.0.0        ^16 || ^17
+
+  Safe range (installed):       ⚠  conflict — no safe range
+  Safe range (latest):          ⚠  conflict — no safe range
+
+  ⚠  Conflicts at latest (1 package(s) block upgrade):
+  ⚠  some-legacy-lib           2.4.1        3.0.0        ^16 || ^17
+```
