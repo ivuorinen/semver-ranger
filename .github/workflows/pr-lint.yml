@@ -11,13 +11,10 @@ permissions:
   packages: read
   statuses: write
 
-env: # Comment env block if you don't want to apply fixes
-  # Apply linter fixes configuration
-  APPLY_FIXES: all
+env:
+  # Workflow-level fix behaviour (linter config lives in .mega-linter.yml)
   APPLY_FIXES_EVENT: all
   APPLY_FIXES_MODE: commit
-  DISABLE_LINTERS: JAVASCRIPT_STANDARD,TYPESCRIPT_STANDARD,SPELL,SPELL_CSPELL,SPELL_LYCHEE
-  SARIF_REPORTER: true
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 concurrency:

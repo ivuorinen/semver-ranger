@@ -1,0 +1,28 @@
+# https://megalinter.io/configuration/
+
+APPLY_FIXES: all
+FILEIO_REPORTER: false
+GITHUB_STATUS_REPORTER: true
+IGNORE_GENERATED_FILES: true
+PARALLEL: true
+PRINT_ALPACA: false
+SARIF_REPORTER: true
+SHOW_ELAPSED_TIME: false
+SHOW_SKIPPED_LINTERS: false
+
+DISABLE_LINTERS:
+  - JAVASCRIPT_STANDARD
+  - REPOSITORY_DEVSKIM
+  - SPELL
+  - SPELL_CSPELL
+  - SPELL_LYCHEE
+  - TYPESCRIPT_STANDARD
+
+TYPESCRIPT_ES_CONFIG_FILE: eslint.config.mjs
+JAVASCRIPT_ES_CONFIG_FILE: eslint.config.mjs
+MARKDOWN_MARKDOWNLINT_CONFIG_FILE: .markdownlint.json
+
+# Skip test fixtures — they intentionally use old package versions for parser tests
+REPOSITORY_TRIVY_ARGUMENTS: --skip-dirs test/fixtures
+
+FILTER_REGEX_EXCLUDE: (node_modules|\.git)

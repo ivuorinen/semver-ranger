@@ -78,21 +78,21 @@ globalThis.fetch = async (url: string | URL | Request) =>
 
 1. **npm v1 lockfile path** — pass an inline npm v1 lockfile string (with `dependencies["X"].requires`) to `filterDevPackages`. The v1 lock has no `packages` block, only `dependencies` with `requires`. Assert that transitive production deps are retained and dev-only packages are excluded.
 
-   Inline fixture:
+    Inline fixture:
 
-   ```json
-   {
-     "lockfileVersion": 1,
-     "dependencies": {
-       "express": {
-         "version": "4.18.2",
-         "requires": { "body-parser": "1.20.1" }
-       },
-       "body-parser": { "version": "1.20.1", "requires": {} },
-       "typescript": { "version": "5.0.4", "requires": {} }
-     }
-   }
-   ```
+    ```json
+    {
+      "lockfileVersion": 1,
+      "dependencies": {
+        "express": {
+          "version": "4.18.2",
+          "requires": { "body-parser": "1.20.1" }
+        },
+        "body-parser": { "version": "1.20.1", "requires": {} },
+        "typescript": { "version": "5.0.4", "requires": {} }
+      }
+    }
+    ```
 
 2. **yarn-classic edge building** — use the existing `test/fixtures/yarn-classic.lock` with `projectDir = fixturesDir` (which has `test/fixtures/package.json`). Assert that packages reachable only from devDependencies are excluded.
 

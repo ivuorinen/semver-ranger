@@ -1,0 +1,7 @@
+# Test fixtures intentionally use old package versions for parser tests.
+# Suppress vulnerability findings scoped to those paths.
+ignore:
+  - package:
+      location: "test/fixtures/pnpm-lock.yaml"
+  - package:
+      location: "test/fixtures/package-lock.json"

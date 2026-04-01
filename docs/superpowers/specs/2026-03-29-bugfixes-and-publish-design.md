@@ -123,8 +123,8 @@ Returns a map from package name to list of direct dependency names (not versione
 #### Algorithm
 
 1. Read `package.json` from `projectDir`:
-   - `prodRoots = Object.keys(dependencies ?? {})`
-   - `devRoots = Object.keys(devDependencies ?? {})`
+    - `prodRoots = Object.keys(dependencies ?? {})`
+    - `devRoots = Object.keys(devDependencies ?? {})`
 2. Call `buildEdgeMap(content, type)` to get the graph
 3. BFS from `prodRoots` → `productionSet: Set<string>`
 4. BFS from `devRoots` → `devOnlySet: Set<string>` (subtract productionSet)
