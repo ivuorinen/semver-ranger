@@ -74,10 +74,7 @@ it('fetchManifest: cache miss, fetch success returns engines', async () => {
       json: async () => ({ engines: { node: '>=18' }, peerDependencies: {} })
     }) as Response
   try {
-    const result = await resolveRegistry(
-      [{ name: 'test-manifest-miss-' + Date.now(), version: '1.0.0' }],
-      { offline: false }
-    )
+    const result = await resolveRegistry([{ name: 'test-manifest-miss-' + Date.now(), version: '1.0.0' }], { offline: false })
     assert.strictEqual(result[0].engines?.node, '>=18')
   } finally {
     // @ts-ignore
@@ -87,13 +84,9 @@ it('fetchManifest: cache miss, fetch success returns engines', async () => {
 
 it('fetchManifest: fetch !ok returns null (no engines enrichment)', async () => {
   const { resolveRegistry } = await import('../../src/registry/client.js')
-  globalThis.fetch = async () =>
-    ({ ok: false, json: async () => ({}) }) as Response
+  globalThis.fetch = async () => ({ ok: false, json: async () => ({}) }) as Response
   try {
-    const result = await resolveRegistry(
-      [{ name: 'test-manifest-notok-' + Date.now(), version: '1.0.0' }],
-      { offline: false }
-    )
+    const result = await resolveRegistry([{ name: 'test-manifest-notok-' + Date.now(), version: '1.0.0' }], { offline: false })
     assert.strictEqual(result[0].engines, undefined)
   } finally {
     // @ts-ignore
@@ -107,10 +100,7 @@ it('fetchManifest: fetch throws returns null (no crash)', async () => {
     throw new Error('ECONNREFUSED')
   }
   try {
-    const result = await resolveRegistry(
-      [{ name: 'test-manifest-throw-' + Date.now(), version: '1.0.0' }],
-      { offline: false }
-    )
+    const result = await resolveRegistry([{ name: 'test-manifest-throw-' + Date.now(), version: '1.0.0' }], { offline: false })
     assert.strictEqual(result.length, 1)
     assert.strictEqual(result[0].engines, undefined)
   } finally {
@@ -132,10 +122,7 @@ it('fetchLatest: cache miss, fetch success returns latestVersion', async () => {
     return { ok: false, json: async () => ({}) } as Response
   }
   try {
-    const result = await resolveRegistry(
-      [{ name: 'test-latest-miss-' + Date.now(), version: '1.0.0' }],
-      { offline: false }
-    )
+    const result = await resolveRegistry([{ name: 'test-latest-miss-' + Date.now(), version: '1.0.0' }], { offline: false })
     assert.strictEqual(result[0].latestVersion, '5.0.0')
     assert.strictEqual(result[0].latestEngines?.node, '>=20')
   } finally {
@@ -146,13 +133,9 @@ it('fetchLatest: cache miss, fetch success returns latestVersion', async () => {
 
 it('fetchLatest: fetch !ok leaves latestVersion undefined', async () => {
   const { resolveRegistry } = await import('../../src/registry/client.js')
-  globalThis.fetch = async () =>
-    ({ ok: false, json: async () => ({}) }) as Response
+  globalThis.fetch = async () => ({ ok: false, json: async () => ({}) }) as Response
   try {
-    const result = await resolveRegistry(
-      [{ name: 'test-latest-notok-' + Date.now(), version: '1.0.0' }],
-      { offline: false }
-    )
+    const result = await resolveRegistry([{ name: 'test-latest-notok-' + Date.now(), version: '1.0.0' }], { offline: false })
     assert.strictEqual(result[0].latestVersion, undefined)
   } finally {
     // @ts-ignore
@@ -162,8 +145,7 @@ it('fetchLatest: fetch !ok leaves latestVersion undefined', async () => {
 
 it('processBatch: more than CONCURRENCY=8 packages all returned', async () => {
   const { resolveRegistry } = await import('../../src/registry/client.js')
-  globalThis.fetch = async () =>
-    ({ ok: false, json: async () => ({}) }) as Response
+  globalThis.fetch = async () => ({ ok: false, json: async () => ({}) }) as Response
   const pkgs = Array.from({ length: 10 }, (_, i) => ({
     name: `test-batch-pkg-${i}-${Date.now()}`,
     version: '1.0.0'
@@ -212,22 +194,14 @@ it('npm v1 lockfile: follows requires edges', () => {
   const result = filterDevPackages(allPackages, fixturesDir, v1Content, 'npm')
   const names = result.map(p => p.name)
   assert.ok(names.includes('express'), 'express retained (prod dep)')
-  assert.ok(
-    names.includes('body-parser'),
-    'body-parser retained (transitive prod)'
-  )
+  assert.ok(names.includes('body-parser'), 'body-parser retained (transitive prod)')
   assert.ok(!names.includes('typescript'), 'typescript excluded (dev only)')
 })
 
 it('yarn-classic: excludes dev-only packages', () => {
   const content = readFileSync(join(fixturesDir, 'yarn-classic.lock'), 'utf8')
   // fixturesDir/package.json: express=prod, typescript=dev
-  const result = filterDevPackages(
-    allPackages,
-    fixturesDir,
-    content,
-    'yarn-classic'
-  )
+  const result = filterDevPackages(allPackages, fixturesDir, content, 'yarn-classic')
   const names = result.map(p => p.name)
   assert.ok(names.includes('express'), 'express retained')
   assert.ok(!names.includes('typescript'), 'typescript excluded')
@@ -236,12 +210,7 @@ it('yarn-classic: excludes dev-only packages', () => {
 it('yarn-berry: returns all packages unchanged (no edge data)', () => {
   const content = readFileSync(join(fixturesDir, 'yarn-berry.lock'), 'utf8')
   // yarn-berry buildEdgeMap is a no-op: no package can be proven dev-only
-  const result = filterDevPackages(
-    allPackages,
-    fixturesDir,
-    content,
-    'yarn-berry'
-  )
+  const result = filterDevPackages(allPackages, fixturesDir, content, 'yarn-berry')
   assert.strictEqual(result.length, allPackages.length)
 })
 ```
@@ -267,24 +236,11 @@ it('shows latestConflicts warning', () => {
   const withLatestConflicts: AnalysisTarget[] = [
     {
       ...targets[0],
-      latestConflicts: [
-        { package: 'old-pkg', version: '2.0.0', range: '<20.0.0' }
-      ]
+      latestConflicts: [{ package: 'old-pkg', version: '2.0.0', range: '<20.0.0' }]
     }
   ]
-  const output = renderOutput(
-    withLatestConflicts,
-    10,
-    [],
-    'package-lock.json',
-    'npm',
-    false,
-    false
-  )
-  assert.ok(
-    output.includes('old-pkg'),
-    'latestConflicts package name appears in output'
-  )
+  const output = renderOutput(withLatestConflicts, 10, [], 'package-lock.json', 'npm', false, false)
+  assert.ok(output.includes('old-pkg'), 'latestConflicts package name appears in output')
   assert.ok(output.includes('block upgrade'), 'latestConflicts header appears')
 })
 ```
@@ -380,24 +336,13 @@ The existing test sets `process.env.XDG_CACHE_HOME` at module level, so the `if 
 Change the existing import:
 
 ```typescript
-import {
-  getVersionData,
-  setVersionData,
-  getLatestData,
-  setLatestData
-} from '../../src/cache/index.js'
+import { getVersionData, setVersionData, getLatestData, setLatestData } from '../../src/cache/index.js'
 ```
 
 To:
 
 ```typescript
-import {
-  getCacheDir,
-  getVersionData,
-  setVersionData,
-  getLatestData,
-  setLatestData
-} from '../../src/cache/index.js'
+import { getCacheDir, getVersionData, setVersionData, getLatestData, setLatestData } from '../../src/cache/index.js'
 ```
 
 - [ ] **Step 2: Add 1 test inside `describe('cache', () => { ... })` before the closing `})`**
@@ -408,10 +353,7 @@ it('getCacheDir: falls back to envPaths when XDG_CACHE_HOME is unset', () => {
   delete process.env.XDG_CACHE_HOME
   try {
     const dir = getCacheDir()
-    assert.ok(
-      typeof dir === 'string' && dir.length > 0,
-      'returns a non-empty string'
-    )
+    assert.ok(typeof dir === 'string' && dir.length > 0, 'returns a non-empty string')
     assert.ok(dir.includes('semver-ranger'), 'path includes semver-ranger')
   } finally {
     if (prev !== undefined) process.env.XDG_CACHE_HOME = prev
@@ -447,10 +389,7 @@ Append inside `describe('parseNpmLockfile', () => { ... })` before the closing `
 
 ```typescript
 it('parses v1 lockfile via dependencies block', () => {
-  const content = readFileSync(
-    join(fixturesDir, 'package-lock-v1.json'),
-    'utf8'
-  )
+  const content = readFileSync(join(fixturesDir, 'package-lock-v1.json'), 'utf8')
   const packages = parseNpmLockfile(content)
   assert.ok(packages.length > 0, 'returns packages')
   const express = packages.find(p => p.name === 'express')
@@ -467,13 +406,7 @@ Append inside `describe('parsePnpmLockfile', () => { ... })` before the closing 
 
 ```typescript
 it('handles package with no engines field', () => {
-  const content = [
-    "lockfileVersion: '6.0'",
-    'packages:',
-    '  /lodash@4.17.21:',
-    '    resolution: { integrity: sha512-abc }',
-    ''
-  ].join('\n')
+  const content = ["lockfileVersion: '6.0'", 'packages:', '  /lodash@4.17.21:', '    resolution: { integrity: sha512-abc }', ''].join('\n')
   const packages = parsePnpmLockfile(content)
   const lodash = packages.find(p => p.name === 'lodash')
   assert.ok(lodash, 'lodash found')
@@ -481,15 +414,7 @@ it('handles package with no engines field', () => {
 })
 
 it('extracts peerDependencies from pnpm v6 entry', () => {
-  const content = [
-    "lockfileVersion: '6.0'",
-    'packages:',
-    '  /react-dom@18.0.0:',
-    '    resolution: { integrity: sha512-abc }',
-    '    peerDependencies:',
-    '      react: ^18.0.0',
-    ''
-  ].join('\n')
+  const content = ["lockfileVersion: '6.0'", 'packages:', '  /react-dom@18.0.0:', '    resolution: { integrity: sha512-abc }', '    peerDependencies:', '      react: ^18.0.0', ''].join('\n')
   const packages = parsePnpmLockfile(content)
   const pkg = packages.find(p => p.name === 'react-dom')
   assert.ok(pkg, 'react-dom found')
@@ -518,15 +443,7 @@ Append inside `describe('parseYarnBerryLockfile', () => { ... })` before the clo
 ```typescript
 it('skips entries with no version field', () => {
   // Minimal berry lockfile with one entry missing version
-  const content = [
-    '__metadata:',
-    '  version: 6',
-    '',
-    '"no-version-pkg@npm:^1.0.0":',
-    '  resolution: "no-version-pkg@npm:1.0.0"',
-    '  languageName: node',
-    ''
-  ].join('\n')
+  const content = ['__metadata:', '  version: 6', '', '"no-version-pkg@npm:^1.0.0":', '  resolution: "no-version-pkg@npm:1.0.0"', '  languageName: node', ''].join('\n')
   const packages = parseYarnBerryLockfile(content)
   // Entry has no `version:` field — should be skipped
   assert.strictEqual(packages.length, 0)

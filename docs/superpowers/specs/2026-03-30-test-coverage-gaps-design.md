@@ -14,19 +14,19 @@ Overall baseline: 92.50% lines, 79.06% branches, 91.23% functions.
 
 ## Coverage Gaps
 
-| File | Line % | Branch % | Uncovered lines / notes |
-| --- | --- | --- | --- |
-| `src/registry/client.ts` | 65.04 | 75.00 | 12–13, 15–28, 31–38, 41–55, 60–63 — all network paths |
-| `src/graph/index.ts` | 88.89 | 72.41 | 23–25 (interface), 40–53 — npm v1 + yarn-classic paths |
-| `src/output/table.ts` | 93.06 | 81.82 | 54–65 — `latestConflicts` block; 1 function uncovered |
-| `src/analyzer/peers.ts` | 97.03 | 75.00 | 41, 43–44 — `latestPeerDependencies` path |
-| `src/analyzer/engines.ts` | 98.59 | 82.35 | 14 — wildcard `'*'` range ignored |
-| `src/cache/index.ts` | 98.18 | 93.75 | 13–14 — `XDG_CACHE_HOME` env var path |
-| `src/parsers/npm.ts` | 96.43 | 76.92 | 22–23 — v1 lockfile branch |
-| `src/parsers/pnpm.ts` | 100.00 | 64.29 | branch gaps: missing engines / missing peerDeps |
-| `src/parsers/yarn-classic.ts` | 100.00 | 57.14 | branch gaps: `dependencies:` block, empty-line reset |
-| `src/parsers/yarn-berry.ts` | 100.00 | 75.00 | branch gaps: packages with/without engines |
-| `src/analyzer/intersect.ts` | 100.00 | 78.95 | branch gap: `semver.minVersion` returning null |
+| File                          | Line % | Branch % | Uncovered lines / notes                                |
+| ----------------------------- | ------ | -------- | ------------------------------------------------------ |
+| `src/registry/client.ts`      | 65.04  | 75.00    | 12–13, 15–28, 31–38, 41–55, 60–63 — all network paths  |
+| `src/graph/index.ts`          | 88.89  | 72.41    | 23–25 (interface), 40–53 — npm v1 + yarn-classic paths |
+| `src/output/table.ts`         | 93.06  | 81.82    | 54–65 — `latestConflicts` block; 1 function uncovered  |
+| `src/analyzer/peers.ts`       | 97.03  | 75.00    | 41, 43–44 — `latestPeerDependencies` path              |
+| `src/analyzer/engines.ts`     | 98.59  | 82.35    | 14 — wildcard `'*'` range ignored                      |
+| `src/cache/index.ts`          | 98.18  | 93.75    | 13–14 — `XDG_CACHE_HOME` env var path                  |
+| `src/parsers/npm.ts`          | 96.43  | 76.92    | 22–23 — v1 lockfile branch                             |
+| `src/parsers/pnpm.ts`         | 100.00 | 64.29    | branch gaps: missing engines / missing peerDeps        |
+| `src/parsers/yarn-classic.ts` | 100.00 | 57.14    | branch gaps: `dependencies:` block, empty-line reset   |
+| `src/parsers/yarn-berry.ts`   | 100.00 | 75.00    | branch gaps: packages with/without engines             |
+| `src/analyzer/intersect.ts`   | 100.00 | 78.95    | branch gap: `semver.minVersion` returning null         |
 
 ---
 
@@ -112,20 +112,10 @@ Add a target with `latestConflicts` populated:
 const withLatestConflicts: AnalysisTarget[] = [
   {
     ...targets[0],
-    latestConflicts: [
-      { package: 'old-pkg', version: '2.0.0', range: '<20.0.0' }
-    ]
+    latestConflicts: [{ package: 'old-pkg', version: '2.0.0', range: '<20.0.0' }]
   }
 ]
-const output = renderOutput(
-  withLatestConflicts,
-  10,
-  [],
-  'package-lock.json',
-  'npm',
-  false,
-  false
-)
+const output = renderOutput(withLatestConflicts, 10, [], 'package-lock.json', 'npm', false, false)
 assert.ok(output.includes('old-pkg'))
 ```
 
@@ -198,10 +188,7 @@ Use the existing `package-lock-v1.json` fixture (already present from previous s
 
 ```typescript
 it('parses v1 lockfile', () => {
-  const content = readFileSync(
-    join(fixturesDir, 'package-lock-v1.json'),
-    'utf8'
-  )
+  const content = readFileSync(join(fixturesDir, 'package-lock-v1.json'), 'utf8')
   const packages = parseNpmLockfile(content)
   assert.ok(packages.length > 0)
   assert.ok(packages.every(p => p.name && p.version))

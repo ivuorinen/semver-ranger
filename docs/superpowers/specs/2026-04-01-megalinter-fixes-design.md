@@ -8,15 +8,15 @@ PR #74 (`feat!: rewrite in TypeScript`) fails MegaLinter CI. 7 linter categories
 
 ## Failing Linters & Root Causes
 
-| Linter | Count | Root cause |
-| --- | --- | --- |
-| `ts-standard` | many | `strict-boolean-expressions`, `restrict-template-expressions`, spacing/indent |
-| `jscpd` | 5 clones | Repeated fetch-mock blocks in test files |
-| `editorconfig-checker` | 17 lines | `CLAUDE.md` exceeds `max_line_length = 80` for `*.md` |
-| `npm-package-json-lint` | 1 | `test/fixtures/graph-shared/package.json` missing `"version"` |
-| `kics` | 1 | `publish.yml:50` action not pinned to full SHA |
-| `grype` + `trivy` | 4 CVEs | `test/fixtures/package-lock.json` has `express@4.18.2`, `body-parser@1.20.1` |
-| `yaml/prettier` (warning) | 2 | `.prettierrc.json` extends `@ivuorinen/prettier-config` (not installed) |
+| Linter                    | Count    | Root cause                                                                    |
+| ------------------------- | -------- | ----------------------------------------------------------------------------- |
+| `ts-standard`             | many     | `strict-boolean-expressions`, `restrict-template-expressions`, spacing/indent |
+| `jscpd`                   | 5 clones | Repeated fetch-mock blocks in test files                                      |
+| `editorconfig-checker`    | 17 lines | `CLAUDE.md` exceeds `max_line_length = 80` for `*.md`                         |
+| `npm-package-json-lint`   | 1        | `test/fixtures/graph-shared/package.json` missing `"version"`                 |
+| `kics`                    | 1        | `publish.yml:50` action not pinned to full SHA                                |
+| `grype` + `trivy`         | 4 CVEs   | `test/fixtures/package-lock.json` has `express@4.18.2`, `body-parser@1.20.1`  |
+| `yaml/prettier` (warning) | 2        | `.prettierrc.json` extends `@ivuorinen/prettier-config` (not installed)       |
 
 ---
 
@@ -28,19 +28,19 @@ PR #74 (`feat!: rewrite in TypeScript`) fails MegaLinter CI. 7 linter categories
 
 **Step 2 — manual semantic fixes** in affected files:
 
-| File | Violations | Fix pattern |
-| --- | --- | --- |
-| `src/analyzer/engines.ts:14,31` | nullable string in boolean | `if (x)` → `if (x != null)` |
-| `src/analyzer/intersect.ts:26-28,37` | nullable obj/any in boolean | `if (x)` → `if (x != null)` |
-| `src/analyzer/peers.ts:69,73` | nullable string in boolean | `if (x)` → `if (x != null)` |
-| `src/cache/index.ts:13` | any in boolean | `if (x)` → `if (x != null)` |
-| `src/cli.ts:37,42,72,74,89,124` | any/nullable in boolean | `if (x)` → `if (x != null)` |
-| `src/cli.ts:75,92` | `string\|undefined` in template | `\`${x}\`` → `\`${x ?? ''}\`` |
-| `src/graph/index.ts:85` | nullable obj in boolean | `if (x)` → `if (x != null)` |
-| `src/output/table.ts:4` | any in boolean (`columns \|\| 80`) | `columns > 0 ? columns : 80` |
-| `src/output/table.ts:37,179` | string in boolean (`x \|\| '—'`) | `x !== '' ? x : '—'` |
-| `src/parsers/detect.ts:26` | any in boolean | `if (x)` → `if (x != null)` |
-| `src/parsers/npm.ts:41` | nullable string in boolean | `if (x)` → `if (x != null)` |
+| File                                 | Violations                         | Fix pattern                   |
+| ------------------------------------ | ---------------------------------- | ----------------------------- |
+| `src/analyzer/engines.ts:14,31`      | nullable string in boolean         | `if (x)` → `if (x != null)`   |
+| `src/analyzer/intersect.ts:26-28,37` | nullable obj/any in boolean        | `if (x)` → `if (x != null)`   |
+| `src/analyzer/peers.ts:69,73`        | nullable string in boolean         | `if (x)` → `if (x != null)`   |
+| `src/cache/index.ts:13`              | any in boolean                     | `if (x)` → `if (x != null)`   |
+| `src/cli.ts:37,42,72,74,89,124`      | any/nullable in boolean            | `if (x)` → `if (x != null)`   |
+| `src/cli.ts:75,92`                   | `string\|undefined` in template    | `\`${x}\`` → `\`${x ?? ''}\`` |
+| `src/graph/index.ts:85`              | nullable obj in boolean            | `if (x)` → `if (x != null)`   |
+| `src/output/table.ts:4`              | any in boolean (`columns \|\| 80`) | `columns > 0 ? columns : 80`  |
+| `src/output/table.ts:37,179`         | string in boolean (`x \|\| '—'`)   | `x !== '' ? x : '—'`          |
+| `src/parsers/detect.ts:26`           | any in boolean                     | `if (x)` → `if (x != null)`   |
+| `src/parsers/npm.ts:41`              | nullable string in boolean         | `if (x)` → `if (x != null)`   |
 
 **Commit:** `fix(ts): make boolean conditions explicit for ts-standard`
 

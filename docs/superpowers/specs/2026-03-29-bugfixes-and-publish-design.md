@@ -48,15 +48,7 @@ Iterate `versionBlock` for name/version extraction; look up `metaBlock[key]` for
 Function signature change:
 
 ```typescript
-renderOutput(
-  targets,
-  totalPackages,
-  packages,
-  lockfileName,
-  manager,
-  showAll,
-  json
-)
+renderOutput(targets, totalPackages, packages, lockfileName, manager, showAll, json)
 renderTarget(target, allPackages, showAll)
 ```
 
@@ -109,21 +101,13 @@ A standalone module that builds a dependency graph from a lockfile and filters o
 #### Public API
 
 ```typescript
-export function filterDevPackages(
-  packages: Package[],
-  projectDir: string,
-  lockfileContent: string,
-  lockfileType: LockfileType
-): Package[]
+export function filterDevPackages(packages: Package[], projectDir: string, lockfileContent: string, lockfileType: LockfileType): Package[]
 ```
 
 #### Internal: `buildEdgeMap`
 
 ```typescript
-function buildEdgeMap(
-  content: string,
-  type: LockfileType
-): Map<string, string[]>
+function buildEdgeMap(content: string, type: LockfileType): Map<string, string[]>
 ```
 
 Returns a map from package name to list of direct dependency names (not versioned — just names). Format-specific logic:
@@ -323,11 +307,11 @@ Created:
 
 All existing 40 tests must continue to pass. New tests added:
 
-| File | Covers |
-| --- | --- |
-| `test/graph/index.test.ts` | npm/pnpm graph traversal, prod/dev split, shared deps retained, missing package.json |
-| `test/parsers/pnpm.test.ts` | Extended: v9 engine data now present |
-| `test/analyzer/intersect.test.ts` | Extended: order-independence verified |
-| `test/output/table.test.ts` | Extended: `--all` produces rows for unconstrained packages |
+| File                              | Covers                                                                               |
+| --------------------------------- | ------------------------------------------------------------------------------------ |
+| `test/graph/index.test.ts`        | npm/pnpm graph traversal, prod/dev split, shared deps retained, missing package.json |
+| `test/parsers/pnpm.test.ts`       | Extended: v9 engine data now present                                                 |
+| `test/analyzer/intersect.test.ts` | Extended: order-independence verified                                                |
+| `test/output/table.test.ts`       | Extended: `--all` produces rows for unconstrained packages                           |
 
 Workflow files are not unit-tested. Manual verification: push a `fix:` commit to main after merging and confirm semantic-release creates a patch release.

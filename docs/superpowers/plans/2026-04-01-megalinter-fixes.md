@@ -226,10 +226,7 @@ const WIDTH = process.stdout.columns || 80
 Replace with:
 
 ```typescript
-const WIDTH =
-  process.stdout.columns != null && process.stdout.columns > 0
-    ? process.stdout.columns
-    : 80
+const WIDTH = process.stdout.columns != null && process.stdout.columns > 0 ? process.stdout.columns : 80
 ```
 
 Current line 37 (inside `renderPackageRow`):
@@ -343,16 +340,10 @@ Note the exact line ranges. The known clones are:
 Add these three helper functions at the top of the file, after the imports (before the `describe('registry client', ...)`):
 
 ```typescript
-type FetchFn = (
-  input: string | URL | Request,
-  init?: RequestInit
-) => Promise<Response>
+type FetchFn = (input: string | URL | Request, init?: RequestInit) => Promise<Response>
 
 /** Returns a mock fetch that serves `manifest` for version requests and `latest` for /latest. */
-function makeDualFetch(
-  manifest: Record<string, unknown>,
-  latest: Record<string, unknown>
-): FetchFn {
+function makeDualFetch(manifest: Record<string, unknown>, latest: Record<string, unknown>): FetchFn {
   return async input => {
     const url = String(input)
     if (url.includes('/latest')) {
@@ -372,9 +363,7 @@ Then replace each repeated block with a call to these helpers. For example, in t
 
 ```typescript
 // Before:
-;(globalThis as Record<string, unknown>).fetch = async (
-  input: string | URL | Request
-) => {
+;(globalThis as Record<string, unknown>).fetch = async (input: string | URL | Request) => {
   const url = String(input)
   if (url.includes('/latest')) {
     return {
@@ -391,17 +380,13 @@ Then replace each repeated block with a call to these helpers. For example, in t
 }
 
 // After:
-globalThis.fetch = makeDualFetch(
-  { engines: { node: '>=18' } },
-  { version: '2.0.0' }
-)
+globalThis.fetch = makeDualFetch({ engines: { node: '>=18' } }, { version: '2.0.0' })
 ```
 
 Apply the same replacement for all identical blocks. For tests that return a single payload (no `/latest` branch), use:
 
 ```typescript
-globalThis.fetch = async () =>
-  ({ ok: true, json: async () => ({ version: '3.0.0' }) }) as Response
+globalThis.fetch = async () => ({ ok: true, json: async () => ({ version: '3.0.0' }) }) as Response
 ```
 
 For fail cases:
@@ -416,10 +401,7 @@ Add this helper after the imports (before `describe('parseNpmLockfile', ...)`):
 
 ```typescript
 /** Parses a lockfile and asserts there is at least one package named express at the given version. */
-function assertExpressVersion(
-  fixtureFile: string,
-  expectedVersion: string
-): void {
+function assertExpressVersion(fixtureFile: string, expectedVersion: string): void {
   const content = readFileSync(join(fixturesDir, fixtureFile), 'utf8')
   const packages = parseNpmLockfile(content)
   assert.ok(packages.length > 0)
@@ -451,10 +433,7 @@ it('parses v3 lockfile', () => {
 ```typescript
 // Before (v1 test):
 it('parses v1 lockfile', () => {
-  const content = readFileSync(
-    join(fixturesDir, 'package-lock-v1.json'),
-    'utf8'
-  )
+  const content = readFileSync(join(fixturesDir, 'package-lock-v1.json'), 'utf8')
   const packages = parseNpmLockfile(content)
   assert.ok(packages.length > 0)
   const express = packages.find(p => p.name === 'express')

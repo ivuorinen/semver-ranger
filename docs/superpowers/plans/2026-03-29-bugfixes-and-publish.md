@@ -158,15 +158,7 @@ it('--all shows packages with no constraint', () => {
     { name: 'lodash', version: '4.17.21' }, // not in any target.ranges
     { name: 'typescript', version: '5.0.4' }
   ]
-  const output = renderOutput(
-    targets,
-    247,
-    allPkgs,
-    'package-lock.json',
-    'npm',
-    true,
-    false
-  )
+  const output = renderOutput(targets, 247, allPkgs, 'package-lock.json', 'npm', true, false)
   assert.ok(output.includes('lodash'), 'lodash appears in --all output')
 })
 ```
@@ -189,23 +181,14 @@ Update `renderTarget` signature and body:
  * @param {boolean} showAll Whether to include packages with no constraint declaration.
  * @returns {string} Formatted multi-line string for the target section.
  */
-function renderTarget(
-  target: AnalysisTarget,
-  allPackages: Package[],
-  showAll: boolean
-): string {
+function renderTarget(target: AnalysisTarget, allPackages: Package[], showAll: boolean): string {
   const ui = makeUi()
   const totalDeclaring = target.ranges.length
 
-  ui.div(
-    `  ${target.name} (${target.source})   ${totalDeclaring} package(s) declare a constraint`
-  )
+  ui.div(`  ${target.name} (${target.source})   ${totalDeclaring} package(s) declare a constraint`)
   ui.div(`  ${'─'.repeat(WIDTH - 4)}`)
 
-  ui.div(
-    { text: '  Safe range (installed):', width: 30 },
-    { text: target.intersection ?? '⚠  conflict — no safe range', width: 50 }
-  )
+  ui.div({ text: '  Safe range (installed):', width: 30 }, { text: target.intersection ?? '⚠  conflict — no safe range', width: 50 })
   ui.div(
     { text: '  Safe range (latest):', width: 30 },
     {
@@ -217,12 +200,7 @@ function renderTarget(
   if (target.ranges.length > 0) {
     ui.div('')
     ui.div('  Most restrictive (installed):')
-    ui.div(
-      { text: '  Package', width: COL_PKG },
-      { text: 'Installed', width: COL_VER },
-      { text: 'Latest', width: COL_LATEST },
-      { text: 'Range', width: COL_RANGE }
-    )
+    ui.div({ text: '  Package', width: COL_PKG }, { text: 'Installed', width: COL_VER }, { text: 'Latest', width: COL_LATEST }, { text: 'Range', width: COL_RANGE })
     for (const entry of target.ranges) {
       const latest = target.latestRanges.find(r => r.package === entry.package)
       renderPackageRow(ui, entry, latest?.version ?? '—')
@@ -231,9 +209,7 @@ function renderTarget(
 
   if (target.conflicts.length > 0) {
     ui.div('')
-    ui.div(
-      `  ⚠  Conflicts at installed (${target.conflicts.length} package(s) cause conflict):`
-    )
+    ui.div(`  ⚠  Conflicts at installed (${target.conflicts.length} package(s) cause conflict):`)
     for (const entry of target.conflicts) {
       renderPackageRow(ui, entry, '—', '  ⚠  ')
     }
@@ -241,17 +217,10 @@ function renderTarget(
 
   if (target.latestConflicts.length > 0) {
     ui.div('')
-    ui.div(
-      `  ⚠  Conflicts at latest (${target.latestConflicts.length} package(s) block upgrade):`
-    )
+    ui.div(`  ⚠  Conflicts at latest (${target.latestConflicts.length} package(s) block upgrade):`)
     for (const entry of target.latestConflicts) {
       const installed = target.ranges.find(r => r.package === entry.package)
-      ui.div(
-        { text: `  ⚠  ${entry.package}`, width: COL_PKG },
-        { text: installed?.version ?? '—', width: COL_VER },
-        { text: entry.version, width: COL_LATEST },
-        { text: entry.range, width: COL_RANGE }
-      )
+      ui.div({ text: `  ⚠  ${entry.package}`, width: COL_PKG }, { text: installed?.version ?? '—', width: COL_VER }, { text: entry.version, width: COL_LATEST }, { text: entry.range, width: COL_RANGE })
     }
   }
 
@@ -261,19 +230,9 @@ function renderTarget(
     if (unconstrained.length > 0) {
       ui.div('')
       ui.div('  All packages (no constraint declared):')
-      ui.div(
-        { text: '  Package', width: COL_PKG },
-        { text: 'Installed', width: COL_VER },
-        { text: 'Latest', width: COL_LATEST },
-        { text: 'Range', width: COL_RANGE }
-      )
+      ui.div({ text: '  Package', width: COL_PKG }, { text: 'Installed', width: COL_VER }, { text: 'Latest', width: COL_LATEST }, { text: 'Range', width: COL_RANGE })
       for (const pkg of unconstrained) {
-        ui.div(
-          { text: '  ' + pkg.name, width: COL_PKG },
-          { text: pkg.version, width: COL_VER },
-          { text: pkg.latestVersion ?? '—', width: COL_LATEST },
-          { text: '—', width: COL_RANGE }
-        )
+        ui.div({ text: '  ' + pkg.name, width: COL_PKG }, { text: pkg.version, width: COL_VER }, { text: pkg.latestVersion ?? '—', width: COL_LATEST }, { text: '—', width: COL_RANGE })
       }
     }
   }
@@ -296,15 +255,7 @@ Update `renderOutput` signature and call site:
  * @param {boolean} json When true, returns a raw JSON string instead of a table.
  * @returns {string} The formatted output string.
  */
-export function renderOutput(
-  targets: AnalysisTarget[],
-  totalPackages: number,
-  packages: Package[],
-  lockfileName: string,
-  manager: string,
-  showAll: boolean,
-  json: boolean
-): string {
+export function renderOutput(targets: AnalysisTarget[], totalPackages: number, packages: Package[], lockfileName: string, manager: string, showAll: boolean, json: boolean): string {
   if (json) {
     return JSON.stringify(targets, null, 2)
   }
@@ -313,14 +264,8 @@ export function renderOutput(
 
   ui.div(`semver-ranger — analyzing ${totalPackages} packages`)
   ui.div('')
-  ui.div(
-    { text: '  Lockfile:', width: 14 },
-    { text: `${lockfileName} (${manager})`, width: 60 }
-  )
-  ui.div(
-    { text: '  Targets:', width: 14 },
-    { text: targets.map(t => t.name).join(', ') || 'none', width: 60 }
-  )
+  ui.div({ text: '  Lockfile:', width: 14 }, { text: `${lockfileName} (${manager})`, width: 60 })
+  ui.div({ text: '  Targets:', width: 14 }, { text: targets.map(t => t.name).join(', ') || 'none', width: 60 })
   ui.div('')
   ui.div(SEP)
 
@@ -343,28 +288,13 @@ Add `import type { Package, AnalysisTarget, RangeEntry } from '../types.js'` to 
 Find this call in `src/cli.ts`:
 
 ```typescript
-const output = renderOutput(
-  allTargets,
-  packages.length,
-  basename(lockfilePath),
-  manager,
-  values.all ?? false,
-  values.json ?? false
-)
+const output = renderOutput(allTargets, packages.length, basename(lockfilePath), manager, values.all ?? false, values.json ?? false)
 ```
 
 Replace with:
 
 ```typescript
-const output = renderOutput(
-  allTargets,
-  packages.length,
-  packages,
-  basename(lockfilePath),
-  manager,
-  values.all ?? false,
-  values.json ?? false
-)
+const output = renderOutput(allTargets, packages.length, packages, basename(lockfilePath), manager, values.all ?? false, values.json ?? false)
 ```
 
 - [ ] **Step 5: Update existing table tests to pass `packages` argument**
@@ -486,9 +416,7 @@ Replace the `computeIntersection` function body:
 
 ```typescript
 export function computeIntersection(ranges: RangeEntry[]): IntersectionResult {
-  const valid = ranges.filter(
-    r => r.range !== '*' && semver.validRange(r.range) !== null
-  )
+  const valid = ranges.filter(r => r.range !== '*' && semver.validRange(r.range) !== null)
 
   if (valid.length === 0) {
     return { intersection: null, conflicts: [] }
@@ -620,20 +548,12 @@ describe('filterDevPackages', () => {
     const result = filterDevPackages(shared, sharedDir, content, 'npm')
     // typescript is in dependencies of graph-shared/package.json → retained
     const names = result.map(p => p.name)
-    assert.ok(
-      names.includes('typescript'),
-      'typescript retained when also a prod dep'
-    )
+    assert.ok(names.includes('typescript'), 'typescript retained when also a prod dep')
   })
 
   it('returns packages unchanged when package.json not found', () => {
     const content = readFileSync(join(fixturesDir, 'package-lock.json'), 'utf8')
-    const result = filterDevPackages(
-      allPackages,
-      '/nonexistent/path',
-      content,
-      'npm'
-    )
+    const result = filterDevPackages(allPackages, '/nonexistent/path', content, 'npm')
     assert.strictEqual(result.length, allPackages.length)
   })
 })
@@ -679,10 +599,7 @@ interface PackageJson {
  * @param {LockfileType} type The lockfile format.
  * @returns {Map<string, string[]>} Map of package name to dependency names.
  */
-function buildEdgeMap(
-  content: string,
-  type: LockfileType
-): Map<string, string[]> {
+function buildEdgeMap(content: string, type: LockfileType): Map<string, string[]> {
   const edges = new Map<string, string[]>()
 
   if (type === 'npm') {
@@ -699,10 +616,7 @@ function buildEdgeMap(
     }
     const lock = JSON.parse(content) as NpmLock
 
-    if (
-      lock.lockfileVersion === 3 ||
-      (lock.lockfileVersion === 2 && lock.packages)
-    ) {
+    if (lock.lockfileVersion === 3 || (lock.lockfileVersion === 2 && lock.packages)) {
       for (const [key, entry] of Object.entries(lock.packages ?? {})) {
         if (!key.startsWith('node_modules/')) continue
         const name = key.slice('node_modules/'.length)
@@ -724,9 +638,7 @@ function buildEdgeMap(
     for (const [key, entry] of Object.entries(block)) {
       // Extract name from /pkg@ver or pkg@ver
       const stripped = key.replace(/\([^)]*\)/gu, '').trim()
-      const match =
-        stripped.match(/^\/(@[^/]+\/[^@]+|[^@/][^@]*)@/u) ??
-        stripped.match(/^(@[^/]+\/[^@]+|[^@]+)@/u)
+      const match = stripped.match(/^\/(@[^/]+\/[^@]+|[^@/][^@]*)@/u) ?? stripped.match(/^(@[^/]+\/[^@]+|[^@]+)@/u)
       if (!match) continue
       const name = match[1]
       edges.set(name, Object.keys(entry.dependencies ?? {}))
@@ -813,12 +725,7 @@ function bfs(roots: string[], edges: Map<string, string[]>): Set<string> {
  * @param {LockfileType} lockfileType The lockfile format.
  * @returns {Package[]} Filtered package list (dev-only packages removed).
  */
-export function filterDevPackages(
-  packages: Package[],
-  projectDir: string,
-  lockfileContent: string,
-  lockfileType: LockfileType
-): Package[] {
+export function filterDevPackages(packages: Package[], projectDir: string, lockfileContent: string, lockfileType: LockfileType): Package[] {
   let pkgJson: PackageJson
   try {
     const raw = readFileSync(join(projectDir, 'package.json'), 'utf8')
