@@ -24,6 +24,7 @@ describe('registry client', () => {
   it('encodeName: scoped package URL encodes the slash', async () => {
     const { resolveRegistry } = await import('../../src/registry/client.js')
     const urls: string[] = []
+    const originalFetch = globalThis.fetch
     ;(globalThis as Record<string, unknown>).fetch = async (input: string | URL | Request) => {
       urls.push(String(input))
       return { ok: false, json: async () => ({}) } as Response
@@ -35,7 +36,7 @@ describe('registry client', () => {
         `expected encoded URL in: ${urls.join(', ')}`
       )
     } finally {
-      delete (globalThis as Record<string, unknown>).fetch
+      globalThis.fetch = originalFetch
     }
   })
 
@@ -45,6 +46,7 @@ describe('registry client', () => {
       ok: true,
       json: async () => ({ engines: { node: '>=18' }, peerDependencies: {} })
     } as Response
+    const originalFetch = globalThis.fetch
     ;(globalThis as Record<string, unknown>).fetch = async () => manifestOkResponse
     try {
       const result = await resolveRegistry(
@@ -53,12 +55,13 @@ describe('registry client', () => {
       )
       assert.strictEqual(result[0].engines?.node, '>=18')
     } finally {
-      delete (globalThis as Record<string, unknown>).fetch
+      globalThis.fetch = originalFetch
     }
   })
 
   it('fetchManifest: fetch !ok → engines not enriched', async () => {
     const { resolveRegistry } = await import('../../src/registry/client.js')
+    const originalFetch = globalThis.fetch
     globalThis.fetch = async () => ({ ok: false, json: async () => ({}) }) as Response
     try {
       const result = await resolveRegistry(
@@ -67,12 +70,13 @@ describe('registry client', () => {
       )
       assert.ok(typeof result[0].engines === 'undefined')
     } finally {
-      delete (globalThis as Record<string, unknown>).fetch
+      globalThis.fetch = originalFetch
     }
   })
 
   it('fetchManifest: fetch throws → no crash, package returned unchanged', async () => {
     const { resolveRegistry } = await import('../../src/registry/client.js')
+    const originalFetch = globalThis.fetch
     globalThis.fetch = async () => {
       throw new Error('ECONNREFUSED')
     }
@@ -84,12 +88,13 @@ describe('registry client', () => {
       assert.strictEqual(result.length, 1)
       assert.ok(typeof result[0].engines === 'undefined')
     } finally {
-      delete (globalThis as Record<string, unknown>).fetch
+      globalThis.fetch = originalFetch
     }
   })
 
   it('fetchLatest: cache miss + fetch ok → latestVersion set', async () => {
     const { resolveRegistry } = await import('../../src/registry/client.js')
+    const originalFetch = globalThis.fetch
     ;(globalThis as Record<string, unknown>).fetch = async (input: string | URL | Request) => {
       const url = String(input)
       if (url.endsWith('/latest')) {
@@ -108,12 +113,13 @@ describe('registry client', () => {
       assert.strictEqual(result[0].latestVersion, '5.0.0')
       assert.strictEqual(result[0].latestEngines?.node, '>=20')
     } finally {
-      delete (globalThis as Record<string, unknown>).fetch
+      globalThis.fetch = originalFetch
     }
   })
 
   it('fetchLatest: fetch !ok → latestVersion undefined', async () => {
     const { resolveRegistry } = await import('../../src/registry/client.js')
+    const originalFetch = globalThis.fetch
     globalThis.fetch = async () => ({ ok: false, json: async () => ({}) }) as Response
     try {
       const result = await resolveRegistry(
@@ -122,7 +128,7 @@ describe('registry client', () => {
       )
       assert.ok(typeof result[0].latestVersion === 'undefined')
     } finally {
-      delete (globalThis as Record<string, unknown>).fetch
+      globalThis.fetch = originalFetch
     }
   })
 
@@ -139,6 +145,7 @@ describe('registry client', () => {
 
   it('fetchLatest: missing version in response → latestVersion undefined (Fix 6)', async () => {
     const { resolveRegistry } = await import('../../src/registry/client.js')
+    const originalFetch = globalThis.fetch
     ;(globalThis as Record<string, unknown>).fetch = async (input: string | URL | Request) => {
       const url = String(input)
       if (url.endsWith('/latest')) {
@@ -160,7 +167,7 @@ describe('registry client', () => {
         'latestVersion should be undefined when version field is absent'
       )
     } finally {
-      delete (globalThis as Record<string, unknown>).fetch
+      globalThis.fetch = originalFetch
     }
   })
 
@@ -179,6 +186,7 @@ describe('registry client', () => {
     })
 
     let fetchCalled = false
+    const originalFetch = globalThis.fetch
     ;(globalThis as Record<string, unknown>).fetch = async () => {
       fetchCalled = true
       return { ok: true, json: async () => ({}) } as Response
@@ -190,12 +198,13 @@ describe('registry client', () => {
       assert.strictEqual(result[0].latestVersion, '3.0.0')
       assert.strictEqual(result[0].latestEngines?.node, '>=20')
     } finally {
-      delete (globalThis as Record<string, unknown>).fetch
+      globalThis.fetch = originalFetch
     }
   })
 
   it('processBatch: >CONCURRENCY packages are all returned', async () => {
     const { resolveRegistry } = await import('../../src/registry/client.js')
+    const originalFetch = globalThis.fetch
     globalThis.fetch = async () => ({ ok: false, json: async () => ({}) }) as Response
     const ts = Date.now()
     const pkgs = Array.from({ length: 10 }, (_, i) => ({
@@ -206,7 +215,7 @@ describe('registry client', () => {
       const result = await resolveRegistry(pkgs, { offline: false })
       assert.strictEqual(result.length, 10)
     } finally {
-      delete (globalThis as Record<string, unknown>).fetch
+      globalThis.fetch = originalFetch
     }
   })
 })
