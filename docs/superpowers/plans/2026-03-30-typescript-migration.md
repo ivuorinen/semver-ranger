@@ -13,6 +13,7 @@
 ### Task 1: Add tsx-501 to .gitignore
 
 **Files:**
+
 - Modify: `.gitignore`
 
 - [ ] **Step 1: Add `tsx-501/` to .gitignore**
@@ -24,6 +25,7 @@ tsx-501/
 ```
 
 The end of `.gitignore` should read:
+
 ```
 node-compile-cache
 tsx-501/
@@ -55,6 +57,7 @@ EOF
 ### Task 2: Commit GitHub community files and workflow updates
 
 **Files:**
+
 - Stage: `.github/CODE_OF_CONDUCT.md`, `.github/ISSUE_TEMPLATE/bug_report.md`, `.github/ISSUE_TEMPLATE/feature_request.md`, `.github/workflows/pr-lint.yml`, `.github/workflows/stale.yml`, `.github/workflows/sync-labels.yml`
 
 - [ ] **Step 1: Stage the files**
@@ -76,6 +79,7 @@ git diff --cached --name-only
 ```
 
 Expected — exactly these 6 files:
+
 ```
 .github/CODE_OF_CONDUCT.md
 .github/ISSUE_TEMPLATE/bug_report.md
@@ -99,6 +103,7 @@ EOF
 ### Task 3: Commit new CI and publish workflows
 
 **Files:**
+
 - Stage: `.github/workflows/ci.yml`, `.github/workflows/publish.yml`
 
 - [ ] **Step 1: Stage the files**
@@ -116,6 +121,7 @@ git diff --cached --name-only
 ```
 
 Expected — exactly these 2 files:
+
 ```
 .github/workflows/ci.yml
 .github/workflows/publish.yml
@@ -135,6 +141,7 @@ EOF
 ### Task 4: Commit build tooling migration
 
 **Files:**
+
 - Stage: `package.json`, `package-lock.json`, `tsconfig.json`, `tsup.config.ts`, `eslint.config.mjs`, `.prettierrc.json`
 
 - [ ] **Step 1: Stage the files**
@@ -156,6 +163,7 @@ git diff --cached --name-only
 ```
 
 Expected — exactly these 6 files:
+
 ```
 .prettierrc.json
 eslint.config.mjs
@@ -183,6 +191,7 @@ EOF
 ### Task 5: Commit the TypeScript rewrite (remove old JS, add src/)
 
 **Files:**
+
 - Stage (add): `src/`
 - Stage (delete): `index.js`, `lib/parser.js`
 
@@ -202,6 +211,7 @@ git diff --cached --name-only
 ```
 
 Expected: `src/` files (many entries) plus:
+
 ```
 index.js          ← deletion
 lib/parser.js     ← deletion
@@ -229,6 +239,7 @@ EOF
 ### Task 6: Commit the test suite
 
 **Files:**
+
 - Stage: `test/`
 
 - [ ] **Step 1: Stage test/**
@@ -263,6 +274,7 @@ EOF
 ### Task 7: Commit documentation
 
 **Files:**
+
 - Stage: `CLAUDE.md`, `docs/`
 
 - [ ] **Step 1: Stage CLAUDE.md and docs/**
@@ -302,6 +314,7 @@ git log --oneline -8
 ```
 
 Expected (most recent first):
+
 ```
 <hash> docs: add claude.md and project documentation
 <hash> test: add test suite

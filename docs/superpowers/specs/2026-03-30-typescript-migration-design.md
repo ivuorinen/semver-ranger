@@ -1,7 +1,6 @@
 # TypeScript Migration — Commit Plan Design
 
-**Date:** 2026-03-30
-**Status:** Approved
+**Date:** 2026-03-30 **Status:** Approved
 
 ## Context
 
@@ -20,7 +19,7 @@ Create a feature branch and land the entire migration as 7 atomic semantic commi
 ## Commit Sequence
 
 | # | Commit message | Files |
-|---|---|---|
+| --- | --- | --- |
 | 1 | `chore: add tsx-501 to gitignore` | `.gitignore` |
 | 2 | `chore: update github community files and workflow configs` | `.github/CODE_OF_CONDUCT.md`, `.github/ISSUE_TEMPLATE/bug_report.md`, `.github/ISSUE_TEMPLATE/feature_request.md`, `.github/workflows/pr-lint.yml`, `.github/workflows/stale.yml`, `.github/workflows/sync-labels.yml` |
 | 3 | `ci: add ci and publish workflows` | `.github/workflows/ci.yml`, `.github/workflows/publish.yml` |
