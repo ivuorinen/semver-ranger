@@ -15,7 +15,6 @@ env:
   # Workflow-level fix behaviour (linter config lives in .mega-linter.yml)
   APPLY_FIXES_EVENT: all
   APPLY_FIXES_MODE: commit
-  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 concurrency:
   group: ${{ github.ref }}-${{ github.workflow }}
