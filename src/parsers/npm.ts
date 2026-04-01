@@ -38,7 +38,7 @@ export function parseNpmLockfile(content: string): Package[] {
       const nameParts = key.split('node_modules/')
       const name = nameParts.at(-1)
       /* c8 ignore next */
-      if (!name || !entry.version) continue
+      if (typeof name === 'undefined' || typeof entry.version === 'undefined') continue
       const dedupKey = `${name}@${entry.version}`
       if (seen.has(dedupKey)) continue
       seen.set(dedupKey, true)

@@ -32,7 +32,7 @@ function readLocalManifest(name: string, projectDir: string): PackageManifest | 
 export async function resolveLocal(packages: Package[], projectDir: string): Promise<Package[]> {
   return packages.map(pkg => {
     const manifest = readLocalManifest(pkg.name, projectDir)
-    if (!manifest) return pkg
+    if (manifest === null) return pkg
     return {
       ...pkg,
       engines: manifest.engines ?? pkg.engines,

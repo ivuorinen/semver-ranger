@@ -11,7 +11,7 @@ function collectRanges(packages: Package[], key: string): RangeEntry[] {
   const ranges: RangeEntry[] = []
   for (const pkg of packages) {
     const range = pkg.engines?.[key]
-    if (range && range !== '*') {
+    if (typeof range !== 'undefined' && range !== '*') {
       ranges.push({ package: pkg.name, version: pkg.version, range })
     }
   }
@@ -28,7 +28,7 @@ function collectLatestRanges(packages: Package[], key: string): RangeEntry[] {
   const ranges: RangeEntry[] = []
   for (const pkg of packages) {
     const range = pkg.latestEngines?.[key]
-    if (range && range !== '*') {
+    if (typeof range !== 'undefined' && range !== '*') {
       ranges.push({ package: pkg.name, version: pkg.latestVersion ?? pkg.version, range })
     }
   }

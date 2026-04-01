@@ -27,13 +27,13 @@ function extractNameVersion(key: string): { name: string; version: string } | nu
 
   // v6: "/pkg@1.0.0" or "/@scope/pkg@1.0.0"
   const v6Match = stripped.match(/^\/(@[^/]+\/[^@]+|[^@/][^@]*)@(.+)$/u)
-  if (v6Match) {
+  if (v6Match !== null) {
     return { name: v6Match[1], version: v6Match[2] }
   }
 
   // v9: "pkg@1.0.0" or "@scope/pkg@1.0.0"
   const v9Match = stripped.match(/^(@[^/]+\/[^@]+|[^@]+)@(.+)$/u)
-  if (v9Match) {
+  if (v9Match !== null) {
     return { name: v9Match[1], version: v9Match[2] }
   }
 
@@ -55,7 +55,7 @@ export function parsePnpmLockfile(content: string): Package[] {
 
   for (const [key] of Object.entries(versionBlock)) {
     const parsed = extractNameVersion(key)
-    if (!parsed) continue
+    if (parsed === null) continue
     const { name, version } = parsed
 
     const dedupKey = `${name}@${version}`

@@ -42,7 +42,7 @@ export function buildEdgeMap(content: string, type: LockfileType): Map<string, s
   if (type === 'npm') {
     const lock = JSON.parse(content) as NpmLock
 
-    if (lock.packages) {
+    if (typeof lock.packages !== 'undefined') {
       // v2/v3: use packages["node_modules/X"].dependencies
       for (const [key, entry] of Object.entries(lock.packages)) {
         if (!key.startsWith('node_modules/')) continue
@@ -63,7 +63,7 @@ export function buildEdgeMap(content: string, type: LockfileType): Map<string, s
         stripped.match(/^\/(@[^/]+\/[^@]+|[^@/][^@]*)@/u) ??
         stripped.match(/^(@[^/]+\/[^@]+|[^@]+)@/u)
       /* c8 ignore next */
-      if (!match) continue
+      if (match === null) continue
       const name = match[1]
       edges.set(name, Object.keys(entry.dependencies ?? {}))
     }
@@ -72,17 +72,17 @@ export function buildEdgeMap(content: string, type: LockfileType): Map<string, s
     let inDeps = false
     const deps: string[] = []
     for (const line of content.split('\n')) {
-      if (!line.startsWith(' ') && line.match(/^"?[^#]/u)) {
+      if (!line.startsWith(' ') && line.match(/^"?[^#]/u) !== null) {
         if (currentPkg !== null) edges.set(currentPkg, [...deps])
         const m = line.match(/^"?(@[^/"\s]+\/[^@"\s]+|[^@"\s]+)@/u)
-        currentPkg = m ? m[1] : /* c8 ignore next */ null
+        currentPkg = m !== null ? m[1] : /* c8 ignore next */ null
         inDeps = false
         deps.length = 0
       } else if (line.trim() === 'dependencies:') {
         inDeps = true
-      } else if (inDeps && line.match(/^ {4}"?[^" ]/u)) {
+      } else if (inDeps && line.match(/^ {4}"?[^" ]/u) !== null) {
         const m = line.match(/^ {4}"?([^"\s]+)\s/u)
-        if (m) deps.push(m[1])
+        if (m !== null) deps.push(m[1])
         /* c8 ignore next 3 */
       } else if (inDeps && line.trim() === '') {
         inDeps = false

@@ -23,17 +23,17 @@ function isYarnBerry(lockfilePath: string): boolean {
  */
 export function detectLockfile(dir: string): DetectedLockfile | null {
   const npmPath = join(dir, 'package-lock.json')
-  if (existsSync(npmPath)) {
+  if (existsSync(npmPath) === true) {
     return { path: npmPath, type: 'npm', manager: 'npm' }
   }
 
   const pnpmPath = join(dir, 'pnpm-lock.yaml')
-  if (existsSync(pnpmPath)) {
+  if (existsSync(pnpmPath) === true) {
     return { path: pnpmPath, type: 'pnpm', manager: 'pnpm' }
   }
 
   const yarnPath = join(dir, 'yarn.lock')
-  if (existsSync(yarnPath)) {
+  if (existsSync(yarnPath) === true) {
     const berry = isYarnBerry(yarnPath)
     return {
       path: yarnPath,

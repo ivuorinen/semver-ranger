@@ -10,7 +10,7 @@ const TTL_24H = 24 * 60 * 60 * 1000
  */
 export function getCacheDir(): string {
   const xdg = process.env.XDG_CACHE_HOME
-  if (xdg) return join(xdg, 'semver-ranger')
+  if (typeof xdg !== 'undefined') return join(xdg, 'semver-ranger')
   try {
     return envPaths('semver-ranger', { suffix: '' }).cache
     /* c8 ignore start */
@@ -41,7 +41,7 @@ let latestStore: FlatCacheInstance | null = null
  * @returns {FlatCacheInstance} The versions cache store.
  */
 function versionsCache(): FlatCacheInstance {
-  if (!versionsStore) {
+  if (versionsStore === null) {
     versionsStore = flatCache.create({ cacheId: 'versions', cacheDir: getCacheDir() })
   }
   return versionsStore
@@ -52,7 +52,7 @@ function versionsCache(): FlatCacheInstance {
  * @returns {FlatCacheInstance} The latest-version cache store.
  */
 function latestCache(): FlatCacheInstance {
-  if (!latestStore) {
+  if (latestStore === null) {
     latestStore = flatCache.create({ cacheId: 'latest', cacheDir: getCacheDir() })
   }
   return latestStore
@@ -64,7 +64,7 @@ function latestCache(): FlatCacheInstance {
  * @returns {CachedManifest | null} Cached manifest or null if not found.
  */
 export function getVersionData(key: string): CachedManifest | null {
-  return (versionsCache().getKey(key) as CachedManifest | undefined) ?? null
+  return versionsCache().getKey(key) ?? null
 }
 
 /**
@@ -88,8 +88,8 @@ export function getLatestData(
   name: string,
   now = Date.now()
 ): (CachedManifest & { version: string }) | null {
-  const entry = latestCache().getKey(name) as LatestEntry | undefined
-  if (!entry) return null
+  const entry: LatestEntry | undefined = latestCache().getKey(name)
+  if (typeof entry === 'undefined') return null
   if (now - entry.cachedAt > TTL_24H) return null
   return entry.data
 }

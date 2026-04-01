@@ -1,7 +1,7 @@
 import cliui from 'cliui'
 import type { AnalysisTarget, Package, RangeEntry } from '../types.js'
 
-const WIDTH = process.stdout.columns || 80
+const WIDTH = typeof process.stdout.columns !== 'undefined' ? process.stdout.columns : 80
 const SEP = '─'.repeat(WIDTH)
 
 const COL_PKG = 28
@@ -34,7 +34,7 @@ function renderPackageRow(
   ui.div(
     { text: prefix + entry.package, width: COL_PKG },
     { text: entry.version, width: COL_VER },
-    { text: latestVersion || '—', width: COL_LATEST },
+    { text: latestVersion !== '' ? latestVersion : '—', width: COL_LATEST },
     { text: entry.range, width: COL_RANGE }
   )
 }
@@ -176,7 +176,11 @@ export function renderOutput(
   ui.div({ text: '  Lockfile:', width: 14 }, { text: `${lockfileName} (${manager})`, width: 60 })
   ui.div(
     { text: '  Targets:', width: 14 },
-    { text: targets.map(t => t.name).join(', ') || 'none', width: 60 }
+    {
+      text:
+        targets.map(t => t.name).join(', ') !== '' ? targets.map(t => t.name).join(', ') : 'none',
+      width: 60
+    }
   )
   ui.div('')
   ui.div(SEP)

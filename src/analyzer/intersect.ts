@@ -23,9 +23,9 @@ export function computeIntersection(ranges: RangeEntry[]): IntersectionResult {
   const sorted = [...valid].sort((a, b) => {
     const minA = semver.minVersion(a.range)
     const minB = semver.minVersion(b.range)
-    if (!minA && !minB) return 0
-    if (!minA) return 1
-    if (!minB) return -1
+    if (minA === null && minB === null) return 0
+    if (minA === null) return 1
+    if (minB === null) return -1
     return semver.compare(minA, minB)
   })
 

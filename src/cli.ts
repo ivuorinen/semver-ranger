@@ -34,12 +34,12 @@ const { values, positionals } = parseArgs({
   }
 })
 
-if (values.version) {
+if (values.version === true) {
   console.log(pkg.version)
   process.exit(0)
 }
 
-if (values.help) {
+if (values.help === true) {
   console.log(`semver-ranger — analyze engine and peer dependency constraints
 
 Usage: semver-ranger [lockfile-path] [options]
@@ -63,20 +63,21 @@ Exit codes: 0 success, 1 unrecoverable error
  * analyzes engine and peer constraints, and renders the output.
  * @returns {Promise<void>} Resolves when analysis and output are complete.
  */
-async function main() {
+async function main(): Promise<void> {
   const cwd = process.cwd()
   let lockfilePath: string | undefined = positionals[0]
   let lockfileType: LockfileType
   let manager: ManagerType
 
-  if (lockfilePath) {
-    lockfilePath = resolve(cwd, lockfilePath)
-    if (!existsSync(lockfilePath)) {
-      console.error(`Error: lockfile not found: ${lockfilePath}`)
+  if (typeof lockfilePath !== 'undefined') {
+    const resolvedPath: string = resolve(cwd, lockfilePath)
+    lockfilePath = resolvedPath
+    if (existsSync(resolvedPath) !== true) {
+      console.error(`Error: lockfile not found: ${resolvedPath}`)
       process.exit(1)
     }
     // Detect type from filename
-    const base = basename(lockfilePath)
+    const base: string = basename(resolvedPath)
     if (base === 'package-lock.json') {
       lockfileType = 'npm'
       manager = 'npm'
@@ -84,8 +85,8 @@ async function main() {
       lockfileType = 'pnpm'
       manager = 'pnpm'
     } else if (base === 'yarn.lock') {
-      const content = readFileSync(lockfilePath, 'utf8')
-      const berry = content.slice(0, 512).includes('__metadata:')
+      const content: string = readFileSync(resolvedPath, 'utf8')
+      const berry: boolean = content.slice(0, 512).includes('__metadata:')
       lockfileType = berry ? 'yarn-berry' : 'yarn-classic'
       manager = 'yarn'
     } else {
@@ -94,7 +95,7 @@ async function main() {
     }
   } else {
     const detected = detectLockfile(cwd)
-    if (!detected) {
+    if (detected === null) {
       console.error('Error: no lockfile found in current directory')
       process.exit(1)
     }
@@ -121,7 +122,7 @@ async function main() {
   packages = await resolveLocal(packages, projectDir)
 
   // Pass 1.5: filter dev-only packages if --no-dev
-  if (values['no-dev']) {
+  if (values['no-dev'] === true) {
     packages = filterDevPackages(packages, projectDir, content, lockfileType)
   }
 

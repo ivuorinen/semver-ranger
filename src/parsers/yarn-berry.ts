@@ -17,10 +17,10 @@ export function parseYarnBerryLockfile(content: string): Package[] {
 
     // key format: "pkg@npm:^1.0.0" or "@scope/pkg@npm:^1.0.0"
     const nameMatch = key.match(/^(.+?)@(?:npm|patch|portal|link|file|git):/u)
-    if (!nameMatch) continue
+    if (nameMatch === null) continue
     const name = nameMatch[1]
     const version = entry.version
-    if (!version) continue
+    if (typeof version === 'undefined' || version === '') continue
 
     const dedupKey = `${name}@${version}`
     if (seen.has(dedupKey)) continue

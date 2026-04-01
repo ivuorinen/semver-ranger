@@ -36,7 +36,7 @@ function encodeName(name: string): string {
 async function fetchManifest(name: string, version: string): Promise<RegistryManifest | null> {
   const cacheKey = `${name}@${version}`
   const cached = getVersionData(cacheKey)
-  if (cached) return cached
+  if (cached !== null) return cached
 
   try {
     const url = `${REGISTRY}/${encodeName(name)}/${version}`
@@ -61,14 +61,14 @@ async function fetchManifest(name: string, version: string): Promise<RegistryMan
  */
 async function fetchLatest(name: string): Promise<(RegistryManifest & { version: string }) | null> {
   const cached = getLatestData(name)
-  if (cached) return cached
+  if (cached !== null) return cached
 
   try {
     const url = `${REGISTRY}/${encodeName(name)}/latest`
     const res = await fetch(url)
     if (!res.ok) return null
     const data = (await res.json()) as RegistryManifest & { version: string }
-    if (!data.version) return null
+    if (data.version === '') return null
     const entry = {
       version: data.version,
       engines: data.engines,
@@ -87,7 +87,7 @@ async function fetchLatest(name: string): Promise<(RegistryManifest & { version:
  * @returns {Promise<Package[]>} Packages enriched with registry data.
  */
 async function processBatch(batch: Package[]): Promise<Package[]> {
-  return Promise.all(
+  return await Promise.all(
     batch.map(async pkg => {
       const [current, latest] = await Promise.all([
         fetchManifest(pkg.name, pkg.version),
@@ -121,11 +121,15 @@ export async function resolveRegistry(
       const latest = getLatestData(pkg.name)
       return {
         ...pkg,
-        ...(manifest?.engines && { engines: manifest.engines }),
-        ...(manifest?.peerDependencies && { peerDependencies: manifest.peerDependencies }),
-        ...(latest?.version && { latestVersion: latest.version }),
-        ...(latest?.engines && { latestEngines: latest.engines }),
-        ...(latest?.peerDependencies && { latestPeerDependencies: latest.peerDependencies })
+        ...(typeof manifest?.engines !== 'undefined' && { engines: manifest.engines }),
+        ...(typeof manifest?.peerDependencies !== 'undefined' && {
+          peerDependencies: manifest.peerDependencies
+        }),
+        ...(typeof latest?.version !== 'undefined' && { latestVersion: latest.version }),
+        ...(typeof latest?.engines !== 'undefined' && { latestEngines: latest.engines }),
+        ...(typeof latest?.peerDependencies !== 'undefined' && {
+          latestPeerDependencies: latest.peerDependencies
+        })
       }
     })
   }

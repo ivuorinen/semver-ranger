@@ -21,7 +21,7 @@ export function parseYarnClassicLockfile(content: string): Package[] {
     // extract the package name from the first specifier
     const firstSpec = key.split(',')[0].trim()
     const nameMatch = firstSpec.match(/^(@[^/]+\/[^@]+|[^@]+)@/u)
-    if (!nameMatch) continue
+    if (nameMatch === null) continue
     const name = nameMatch[1]
     const version = (entry as { version: string }).version
     const dedupKey = `${name}@${version}`

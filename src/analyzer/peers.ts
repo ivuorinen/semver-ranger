@@ -66,11 +66,11 @@ export function analyzePeers(packages: Package[], peerTargets: string[]): Analys
 
     for (const pkg of packages) {
       const range = pkg.peerDependencies?.[targetName]
-      if (range && range !== '*') {
+      if (typeof range !== 'undefined' && range !== '*') {
         ranges.push({ package: pkg.name, version: pkg.version, range })
       }
       const latestRange = pkg.latestPeerDependencies?.[targetName]
-      if (latestRange && latestRange !== '*') {
+      if (typeof latestRange !== 'undefined' && latestRange !== '*') {
         latestRanges.push({
           package: pkg.name,
           version: pkg.latestVersion ?? pkg.version,

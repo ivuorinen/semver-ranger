@@ -7,8 +7,8 @@ declare module 'cliui' {
   }
 
   interface UI {
-    div(...columns: (string | Column)[]): void
-    toString(): string
+    div: (...columns: Array<string | Column>) => void
+    toString: () => string
   }
 
   interface Options {
