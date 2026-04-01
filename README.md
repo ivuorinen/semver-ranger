@@ -103,3 +103,26 @@ registry (responses are stored in a flat-file cache so repeated runs are fast). 
 computes the semver intersection of all constraints for each analysis target (the Node.js
 engine, or a specific peer package). Finally, it renders the result as an ASCII table or
 JSON.
+
+## Requirements
+
+- Node.js 22 or later
+- `nvm` is recommended to activate the correct version: `nvm use`
+
+## Development
+
+Clone the repository and install dependencies:
+
+```sh
+git clone https://github.com/ivuorinen/semver-ranger.git
+cd semver-ranger
+npm install
+```
+
+| Command | Description |
+|---|---|
+| `npm run build` | Compile TypeScript to `dist/` via tsup (ESM) |
+| `npm run dev` | Watch mode compilation |
+| `npm run lint` | Prettier format + ESLint auto-fix |
+| `npm run test` | Run tests with Node's native test runner |
+| `npm run cov` | Test coverage (experimental) |
