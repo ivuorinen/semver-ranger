@@ -1,6 +1,36 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 
+type FetchFn = (input: string | URL | Request, init?: RequestInit) => Promise<Response>
+
+/**
+ * Returns a mock fetch that serves `manifest` for version requests
+ * and `latest` for /latest requests.
+ * @param {Record<string, unknown>} manifest Data served for version requests.
+ * @param {Record<string, unknown>} latest Data served for /latest requests.
+ * @returns {FetchFn} Mock fetch function.
+ */
+function makeDualFetch(
+  manifest: Record<string, unknown>,
+  latest: Record<string, unknown>
+): FetchFn {
+  return async input => {
+    const url = String(input)
+    if (url.includes('/latest')) {
+      return { ok: true, json: async () => latest } as unknown as Response
+    }
+    return { ok: true, json: async () => manifest } as unknown as Response
+  }
+}
+
+/**
+ * Returns a mock fetch that always fails (ok: false).
+ * @returns {FetchFn} Mock fetch function that always returns ok: false.
+ */
+function makeFailFetch(): FetchFn {
+  return async () => ({ ok: false, json: async () => ({}) }) as unknown as Response
+}
+
 describe('registry client', () => {
   it('resolveRegistry in offline mode skips all fetches', async () => {
     // In offline mode no fetches should happen
@@ -10,7 +40,7 @@ describe('registry client', () => {
     // Should complete without throwing even with no network
     const result = await resolveRegistry(packages, { offline: true })
     assert.strictEqual(result.length, 1)
-    assert.ok(!result[0].latestVersion)
+    assert.ok(typeof result[0].latestVersion === 'undefined')
   })
 
   it('resolveRegistry returns packages unchanged structure', async () => {
@@ -25,9 +55,9 @@ describe('registry client', () => {
     const { resolveRegistry } = await import('../../src/registry/client.js')
     const urls: string[] = []
     const originalFetch = globalThis.fetch
-    ;(globalThis as Record<string, unknown>).fetch = async (input: string | URL | Request) => {
+    globalThis.fetch = async (input: string | URL | Request) => {
       urls.push(String(input))
-      return { ok: false, json: async () => ({}) } as Response
+      return { ok: false, json: async () => ({}) } as unknown as Response
     }
     try {
       await resolveRegistry([{ name: '@scope/pkg', version: '1.0.0' }], { offline: false })
@@ -42,12 +72,8 @@ describe('registry client', () => {
 
   it('fetchManifest: cache miss + fetch ok → engines enriched', async () => {
     const { resolveRegistry } = await import('../../src/registry/client.js')
-    const manifestOkResponse: Response = {
-      ok: true,
-      json: async () => ({ engines: { node: '>=18' }, peerDependencies: {} })
-    } as Response
     const originalFetch = globalThis.fetch
-    ;(globalThis as Record<string, unknown>).fetch = async () => manifestOkResponse
+    globalThis.fetch = makeDualFetch({ engines: { node: '>=18' }, peerDependencies: {} }, {})
     try {
       const result = await resolveRegistry(
         [{ name: `test-manifest-ok-${Date.now()}`, version: '1.0.0' }],
@@ -62,7 +88,7 @@ describe('registry client', () => {
   it('fetchManifest: fetch !ok → engines not enriched', async () => {
     const { resolveRegistry } = await import('../../src/registry/client.js')
     const originalFetch = globalThis.fetch
-    globalThis.fetch = async () => ({ ok: false, json: async () => ({}) }) as Response
+    globalThis.fetch = makeFailFetch()
     try {
       const result = await resolveRegistry(
         [{ name: `test-manifest-notok-${Date.now()}`, version: '1.0.0' }],
@@ -95,16 +121,7 @@ describe('registry client', () => {
   it('fetchLatest: cache miss + fetch ok → latestVersion set', async () => {
     const { resolveRegistry } = await import('../../src/registry/client.js')
     const originalFetch = globalThis.fetch
-    ;(globalThis as Record<string, unknown>).fetch = async (input: string | URL | Request) => {
-      const url = String(input)
-      if (url.endsWith('/latest')) {
-        return {
-          ok: true,
-          json: async () => ({ version: '5.0.0', engines: { node: '>=20' } })
-        } as Response
-      }
-      return { ok: false, json: async () => ({}) } as Response
-    }
+    globalThis.fetch = makeDualFetch({}, { version: '5.0.0', engines: { node: '>=20' } })
     try {
       const result = await resolveRegistry(
         [{ name: `test-latest-ok-${Date.now()}`, version: '1.0.0' }],
@@ -120,7 +137,7 @@ describe('registry client', () => {
   it('fetchLatest: fetch !ok → latestVersion undefined', async () => {
     const { resolveRegistry } = await import('../../src/registry/client.js')
     const originalFetch = globalThis.fetch
-    globalThis.fetch = async () => ({ ok: false, json: async () => ({}) }) as Response
+    globalThis.fetch = makeFailFetch()
     try {
       const result = await resolveRegistry(
         [{ name: `test-latest-notok-${Date.now()}`, version: '1.0.0' }],
@@ -146,17 +163,7 @@ describe('registry client', () => {
   it('fetchLatest: missing version in response → latestVersion undefined (Fix 6)', async () => {
     const { resolveRegistry } = await import('../../src/registry/client.js')
     const originalFetch = globalThis.fetch
-    ;(globalThis as Record<string, unknown>).fetch = async (input: string | URL | Request) => {
-      const url = String(input)
-      if (url.endsWith('/latest')) {
-        // Response body has no version field
-        return {
-          ok: true,
-          json: async () => ({ engines: { node: '>=18' } })
-        } as Response
-      }
-      return { ok: false, json: async () => ({}) } as Response
-    }
+    globalThis.fetch = makeDualFetch({}, { engines: { node: '>=18' } })
     try {
       const result = await resolveRegistry(
         [{ name: `test-fix6-${Date.now()}`, version: '1.0.0' }],
@@ -187,9 +194,9 @@ describe('registry client', () => {
 
     let fetchCalled = false
     const originalFetch = globalThis.fetch
-    ;(globalThis as Record<string, unknown>).fetch = async () => {
+    globalThis.fetch = async () => {
       fetchCalled = true
-      return { ok: true, json: async () => ({}) } as Response
+      return { ok: true, json: async () => ({}) } as unknown as Response
     }
     try {
       const result = await resolveRegistry([{ name, version: '1.0.0' }], { offline: true })
@@ -205,7 +212,7 @@ describe('registry client', () => {
   it('processBatch: >CONCURRENCY packages are all returned', async () => {
     const { resolveRegistry } = await import('../../src/registry/client.js')
     const originalFetch = globalThis.fetch
-    globalThis.fetch = async () => ({ ok: false, json: async () => ({}) }) as Response
+    globalThis.fetch = makeFailFetch()
     const ts = Date.now()
     const pkgs = Array.from({ length: 10 }, (_, i) => ({
       name: `test-batch-${i}-${ts}`,

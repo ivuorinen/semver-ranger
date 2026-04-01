@@ -75,6 +75,6 @@ describe('parseYarnBerryLockfile', () => {
     const content = readFileSync(join(fixturesDir, 'yarn-berry.lock'), 'utf8')
     const packages = parseYarnBerryLockfile(content)
     const meta = packages.find(p => p.name === '__metadata')
-    assert.ok(!meta)
+    assert.ok(typeof meta === 'undefined')
   })
 })

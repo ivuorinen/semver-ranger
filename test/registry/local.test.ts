@@ -39,7 +39,7 @@ describe('resolveLocal', () => {
 
   it('handles missing packages gracefully', async () => {
     const result = await resolveLocal([{ name: 'missing-pkg', version: '1.0.0' }], tmpBase)
-    assert.ok(!result[0].engines)
+    assert.ok(typeof result[0].engines === 'undefined')
   })
 
   it('resolves scoped packages', async () => {

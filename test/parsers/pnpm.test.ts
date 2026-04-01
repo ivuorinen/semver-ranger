@@ -27,10 +27,10 @@ describe('parsePnpmLockfile', () => {
 
   it('handles package with no engines field', () => {
     const content = [
-      `lockfileVersion: '6.0'`,
-      `packages:`,
-      `  /lodash@4.17.21:`,
-      `    resolution: { integrity: sha512-abc }`
+      "lockfileVersion: '6.0'",
+      'packages:',
+      '  /lodash@4.17.21:',
+      '    resolution: { integrity: sha512-abc }'
     ].join('\n')
     const packages = parsePnpmLockfile(content)
     const lodash = packages.find(p => p.name === 'lodash')
@@ -40,12 +40,12 @@ describe('parsePnpmLockfile', () => {
 
   it('extracts peerDependencies from pnpm lockfile', () => {
     const content = [
-      `lockfileVersion: '6.0'`,
-      `packages:`,
-      `  /react-dom@18.0.0:`,
-      `    resolution: { integrity: sha512-abc }`,
-      `    peerDependencies:`,
-      `      react: ^18.0.0`
+      "lockfileVersion: '6.0'",
+      'packages:',
+      '  /react-dom@18.0.0:',
+      '    resolution: { integrity: sha512-abc }',
+      '    peerDependencies:',
+      '      react: ^18.0.0'
     ].join('\n')
     const packages = parsePnpmLockfile(content)
     const reactDom = packages.find(p => p.name === 'react-dom')
@@ -55,10 +55,10 @@ describe('parsePnpmLockfile', () => {
 
   it('skips keys that cannot be parsed', () => {
     const content = [
-      `lockfileVersion: '6.0'`,
-      `packages:`,
-      `  invalid-key-no-version:`,
-      `    resolution: { integrity: sha512-abc }`
+      "lockfileVersion: '6.0'",
+      'packages:',
+      '  invalid-key-no-version:',
+      '    resolution: { integrity: sha512-abc }'
     ].join('\n')
     const packages = parsePnpmLockfile(content)
     assert.ok(!packages.some(p => p.name === 'invalid-key-no-version'))
@@ -66,12 +66,12 @@ describe('parsePnpmLockfile', () => {
 
   it('deduplicates packages with same name and version', () => {
     const content = [
-      `lockfileVersion: '6.0'`,
-      `packages:`,
-      `  /lodash@4.17.21:`,
-      `    resolution: { integrity: sha512-abc }`,
-      `  /lodash@4.17.21(peer@1.0.0):`,
-      `    resolution: { integrity: sha512-abc }`
+      "lockfileVersion: '6.0'",
+      'packages:',
+      '  /lodash@4.17.21:',
+      '    resolution: { integrity: sha512-abc }',
+      '  /lodash@4.17.21(peer@1.0.0):',
+      '    resolution: { integrity: sha512-abc }'
     ].join('\n')
     const packages = parsePnpmLockfile(content)
     const lodashEntries = packages.filter(p => p.name === 'lodash')

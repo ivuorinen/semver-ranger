@@ -4,12 +4,6 @@ import { describe, it, before, after } from 'node:test'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-const currentDir = dirname(fileURLToPath(import.meta.url))
-const tmpCacheDir = join(currentDir, '../../.tmp-cache-test')
-
-// Override XDG_CACHE_HOME before importing cache module
-process.env.XDG_CACHE_HOME = tmpCacheDir
-
 import {
   getVersionData,
   setVersionData,
@@ -17,6 +11,12 @@ import {
   setLatestData,
   getCacheDir
 } from '../../src/cache/index.js'
+
+const currentDir = dirname(fileURLToPath(import.meta.url))
+const tmpCacheDir = join(currentDir, '../../.tmp-cache-test')
+
+// Override XDG_CACHE_HOME before importing cache module
+process.env.XDG_CACHE_HOME = tmpCacheDir
 
 describe('cache', () => {
   before(() => {
