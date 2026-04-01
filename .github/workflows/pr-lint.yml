@@ -16,7 +16,7 @@ env: # Comment env block if you don't want to apply fixes
   APPLY_FIXES: all
   APPLY_FIXES_EVENT: all
   APPLY_FIXES_MODE: commit
-  DISABLE_LINTERS: JAVASCRIPT_STANDARD,SPELL,SPELL_CSPELL,SPELL_LYCHEE
+  DISABLE_LINTERS: JAVASCRIPT_STANDARD,TYPESCRIPT_STANDARD,SPELL,SPELL_CSPELL,SPELL_LYCHEE
   SARIF_REPORTER: true
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -43,6 +43,9 @@ jobs:
           # If you use VALIDATE_ALL_CODEBASE = true,
           # you can remove this line to improve performances
           fetch-depth: 0
+
+      - name: Install dependencies
+        run: npm ci
 
       # MegaLinter
       - name: MegaLinter
