@@ -91,3 +91,15 @@ react  (peerDependencies)  ·  3 packages declare a constraint
   ⚠  Conflicts at latest (1 package(s) block upgrade):
   ⚠  some-legacy-lib           2.4.1        3.0.0        ^16 || ^17
 ```
+
+---
+
+## How it works
+
+`semver-ranger` runs a four-step pipeline. First, it detects or accepts a lockfile path and
+parses all resolved packages from it. Second, it resolves `engines` and `peerDependencies`
+metadata for each package — checking local `node_modules` first, then querying the npm
+registry (responses are stored in a flat-file cache so repeated runs are fast). Third, it
+computes the semver intersection of all constraints for each analysis target (the Node.js
+engine, or a specific peer package). Finally, it renders the result as an ASCII table or
+JSON.
