@@ -16,10 +16,11 @@ import { filterDevPackages } from './graph/index.js'
 import { analyzeEngines } from './analyzer/engines.js'
 import { analyzePeers, detectPeerTargets } from './analyzer/peers.js'
 import { renderOutput } from './output/table.js'
-import type { Package, LockfileType, ManagerType } from './types.js'
+import { createPhaseSpinner, createBatchProgress } from './output/progress.js'
+import type { Package, ResolvedLockfile, PackageVersion } from './types.js'
 
 const require = createRequire(import.meta.url)
-const pkg = require('../package.json') as { version: string }
+const pkg = require('../package.json') as PackageVersion
 
 const { values, positionals } = parseArgs({
   allowPositionals: true,
@@ -59,52 +60,51 @@ Exit codes: 0 success, 1 unrecoverable error
 }
 
 /**
- * Detects the lockfile, parses packages, resolves registry data,
- * analyzes engine and peer constraints, and renders the output.
+ * Resolves the lockfile path, type, and package manager from a positional arg or auto-detection.
+ * @param {string} cwd Current working directory to search for lockfiles.
+ * @param {string} [positional] Optional explicit lockfile path from CLI positional argument.
+ * @returns {Object} Resolved lockfile info with path, type, and manager.
+ * @throws {Error} If the lockfile is not found, unrecognized, or no lockfile exists in cwd.
+ */
+function resolveLockfile(cwd: string, positional?: string): ResolvedLockfile {
+  if (typeof positional === 'string') {
+    const lockfilePath = resolve(cwd, positional)
+    if (!existsSync(lockfilePath)) {
+      throw new Error(`lockfile not found: ${lockfilePath}`)
+    }
+    const base = basename(lockfilePath)
+    if (base === 'package-lock.json') {
+      return { lockfilePath, lockfileType: 'npm', manager: 'npm' }
+    }
+    if (base === 'pnpm-lock.yaml') {
+      return { lockfilePath, lockfileType: 'pnpm', manager: 'pnpm' }
+    }
+    if (base === 'yarn.lock') {
+      const content = readFileSync(lockfilePath, 'utf8')
+      const berry = content.slice(0, 512).includes('__metadata:')
+      return { lockfilePath, lockfileType: berry ? 'yarn-berry' : 'yarn-classic', manager: 'yarn' }
+    }
+    throw new Error(`unrecognized lockfile: ${base}`)
+  }
+
+  const detected = detectLockfile(cwd)
+  if (detected === null) {
+    throw new Error('no lockfile found in current directory')
+  }
+  return { lockfilePath: detected.path, lockfileType: detected.type, manager: detected.manager }
+}
+
+/**
+ * Main CLI entry point: detects lockfile, resolves packages,
+ * analyzes constraints, and renders output.
  * @returns {Promise<void>} Resolves when analysis and output are complete.
  */
 async function main(): Promise<void> {
-  const cwd = process.cwd()
-  let lockfilePath: string | undefined = positionals[0]
-  let lockfileType: LockfileType
-  let manager: ManagerType
-
-  if (typeof lockfilePath !== 'undefined') {
-    const resolvedPath: string = resolve(cwd, lockfilePath)
-    lockfilePath = resolvedPath
-    if (existsSync(resolvedPath) !== true) {
-      console.error(`Error: lockfile not found: ${resolvedPath}`)
-      process.exit(1)
-    }
-    // Detect type from filename
-    const base: string = basename(resolvedPath)
-    if (base === 'package-lock.json') {
-      lockfileType = 'npm'
-      manager = 'npm'
-    } else if (base === 'pnpm-lock.yaml') {
-      lockfileType = 'pnpm'
-      manager = 'pnpm'
-    } else if (base === 'yarn.lock') {
-      const content: string = readFileSync(resolvedPath, 'utf8')
-      const berry: boolean = content.slice(0, 512).includes('__metadata:')
-      lockfileType = berry ? 'yarn-berry' : 'yarn-classic'
-      manager = 'yarn'
-    } else {
-      console.error(`Error: unrecognized lockfile: ${base}`)
-      process.exit(1)
-    }
-  } else {
-    const detected = detectLockfile(cwd)
-    if (detected === null) {
-      console.error('Error: no lockfile found in current directory')
-      process.exit(1)
-    }
-    lockfilePath = detected.path
-    lockfileType = detected.type
-    manager = detected.manager
-  }
+  const { lockfilePath, lockfileType, manager } = resolveLockfile(process.cwd(), positionals[0])
 
   const projectDir = dirname(lockfilePath)
+  const lockfileBase = basename(lockfilePath)
+  const parseSpinner = createPhaseSpinner(`Parsing ${lockfileBase}`)
   const content = readFileSync(lockfilePath, 'utf8')
 
   let packages: Package[]
@@ -117,9 +117,12 @@ async function main(): Promise<void> {
   } else {
     packages = parsePnpmLockfile(content)
   }
+  parseSpinner.succeed(`Parsed ${lockfileBase} (${packages.length} packages)`)
 
   // Pass 1: local node_modules
+  const localSpinner = createPhaseSpinner('Reading local packages')
   packages = await resolveLocal(packages, projectDir)
+  localSpinner.succeed('Reading local packages')
 
   // Pass 1.5: filter dev-only packages if --no-dev
   if (values['no-dev'] === true) {
@@ -127,13 +130,26 @@ async function main(): Promise<void> {
   }
 
   // Pass 2: registry (skipped if --offline)
-  packages = await resolveRegistry(packages, {
-    offline: values.offline ?? false
-  })
+  if (values.offline !== true) {
+    const progress = createBatchProgress('Fetching registry data', packages.length)
+    packages = await resolveRegistry(packages, {
+      offline: false,
+      onProgress(completed, total, cached) {
+        progress.update(
+          `Fetching registry data... ${completed}/${total}${
+            cached > 0 ? ` (${cached} cached)` : ''
+          }`
+        )
+      }
+    })
+    progress.succeed()
+  } else {
+    packages = await resolveRegistry(packages, { offline: true })
+  }
 
   // Analyze
   const engineTargets = analyzeEngines(packages, manager)
-  const peerTargetNames = detectPeerTargets(projectDir, (values.check as string[]) ?? [])
+  const peerTargetNames = detectPeerTargets(projectDir, values.check ?? [])
   const peerTargets = analyzePeers(packages, peerTargetNames)
   const allTargets = [...engineTargets, ...peerTargets]
 
@@ -144,8 +160,8 @@ async function main(): Promise<void> {
     packages,
     basename(lockfilePath),
     manager,
-    values.all ?? false,
-    values.json ?? false
+    values.all,
+    values.json
   )
 
   console.log(output)
