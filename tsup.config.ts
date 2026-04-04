@@ -5,5 +5,12 @@ export default defineConfig({
   format: ['esm'],
   target: 'node22',
   clean: true,
-  dts: false
+  dts: false,
+  noExternal: [/.*/u],
+  banner: {
+    js: [
+      "import { createRequire as __bundleRequire } from 'node:module';",
+      'const require = __bundleRequire(import.meta.url);'
+    ].join(' ')
+  }
 })
