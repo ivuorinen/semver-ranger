@@ -8,13 +8,14 @@ interface PhaseSpinner {
 
 interface BatchProgress {
   succeed: (text?: string) => void
+  fail: (text?: string) => void
   update: (text: string) => void
 }
 
 const noop = (): void => {}
 
 const NOOP_PHASE: PhaseSpinner = { succeed: noop, fail: noop, update: noop }
-const NOOP_BATCH: BatchProgress = { succeed: noop, update: noop }
+const NOOP_BATCH: BatchProgress = { succeed: noop, fail: noop, update: noop }
 
 /**
  * Creates a spinner for a single CLI phase (e.g. parsing, local resolution).
@@ -48,6 +49,7 @@ export function createBatchProgress(label: string, total: number): BatchProgress
 
   return {
     succeed: (text?: string) => spinner.succeed(text ?? `${label}... ${total}/${total}`),
+    fail: (text?: string) => spinner.fail(text ?? label),
     update(text: string) {
       spinner.text = text
     }

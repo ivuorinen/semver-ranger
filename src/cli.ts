@@ -106,22 +106,31 @@ async function main(): Promise<void> {
   const lockfileBase = basename(lockfilePath)
   const parseSpinner = createPhaseSpinner(`Parsing ${lockfileBase}`)
   const content = readFileSync(lockfilePath, 'utf8')
-
   let packages: Package[]
-  if (lockfileType === 'npm') {
-    packages = parseNpmLockfile(content)
-  } else if (lockfileType === 'yarn-classic') {
-    packages = parseYarnClassicLockfile(content)
-  } else if (lockfileType === 'yarn-berry') {
-    packages = parseYarnBerryLockfile(content)
-  } else {
-    packages = parsePnpmLockfile(content)
+  try {
+    if (lockfileType === 'npm') {
+      packages = parseNpmLockfile(content)
+    } else if (lockfileType === 'yarn-classic') {
+      packages = parseYarnClassicLockfile(content)
+    } else if (lockfileType === 'yarn-berry') {
+      packages = parseYarnBerryLockfile(content)
+    } else {
+      packages = parsePnpmLockfile(content)
+    }
+  } catch (err: unknown) {
+    parseSpinner.fail(`Parsing ${lockfileBase}`)
+    throw err
   }
   parseSpinner.succeed(`Parsed ${lockfileBase} (${packages.length} packages)`)
 
   // Pass 1: local node_modules
   const localSpinner = createPhaseSpinner('Reading local packages')
-  packages = await resolveLocal(packages, projectDir)
+  try {
+    packages = await resolveLocal(packages, projectDir)
+  } catch (err: unknown) {
+    localSpinner.fail('Reading local packages')
+    throw err
+  }
   localSpinner.succeed('Reading local packages')
 
   // Pass 1.5: filter dev-only packages if --no-dev
@@ -132,17 +141,24 @@ async function main(): Promise<void> {
   // Pass 2: registry (skipped if --offline)
   if (values.offline !== true) {
     const progress = createBatchProgress('Fetching registry data', packages.length)
-    packages = await resolveRegistry(packages, {
-      offline: false,
-      onProgress(completed, total, cached) {
-        progress.update(
-          `Fetching registry data... ${completed}/${total}${
+    let lastProgressText = ''
+    try {
+      packages = await resolveRegistry(packages, {
+        offline: false,
+        onProgress(completed, total, cached) {
+          lastProgressText = `Fetching registry data... ${completed}/${total}${
             cached > 0 ? ` (${cached} cached)` : ''
           }`
-        )
-      }
-    })
-    progress.succeed()
+          progress.update(lastProgressText)
+        }
+      })
+      progress.succeed(
+        lastProgressText || `Fetching registry data... ${packages.length}/${packages.length}`
+      )
+    } catch (err: unknown) {
+      progress.fail('Fetching registry data')
+      throw err
+    }
   } else {
     packages = await resolveRegistry(packages, { offline: true })
   }

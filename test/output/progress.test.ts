@@ -1,6 +1,17 @@
 import assert from 'node:assert/strict'
-import { describe, it } from 'node:test'
+import { describe, it, beforeEach, afterEach } from 'node:test'
 import { createPhaseSpinner, createBatchProgress } from '../../src/output/progress.js'
+
+let originalIsTTY: boolean | undefined
+
+beforeEach(() => {
+  originalIsTTY = process.stderr.isTTY
+  process.stderr.isTTY = false as never
+})
+
+afterEach(() => {
+  process.stderr.isTTY = originalIsTTY as never
+})
 
 describe('createPhaseSpinner', () => {
   it('returns an object with succeed, fail, and update methods', () => {
@@ -23,9 +34,10 @@ describe('createPhaseSpinner', () => {
 })
 
 describe('createBatchProgress', () => {
-  it('returns an object with succeed and update methods', () => {
+  it('returns an object with succeed, fail, and update methods', () => {
     const progress = createBatchProgress('test', 10)
     assert.strictEqual(typeof progress.succeed, 'function')
+    assert.strictEqual(typeof progress.fail, 'function')
     assert.strictEqual(typeof progress.update, 'function')
   })
 
@@ -34,5 +46,10 @@ describe('createBatchProgress', () => {
     assert.doesNotThrow(() => progress.update('test... 1/5'))
     assert.doesNotThrow(() => progress.update('test... 2/5'))
     assert.doesNotThrow(() => progress.succeed())
+  })
+
+  it('does not throw when failing (non-TTY)', () => {
+    const progress = createBatchProgress('test', 5)
+    assert.doesNotThrow(() => progress.fail('error'))
   })
 })
