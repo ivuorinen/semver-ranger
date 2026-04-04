@@ -1,0 +1,16 @@
+src/
+test/
+docs/
+node_modules/
+.claude/
+.github/
+*.ts
+!dist/**
+tsconfig.json
+tsup.config.ts
+eslint.config.mjs
+release.yml
+CLAUDE.md
+.nvmrc
+.npmrc
+.gitignore
