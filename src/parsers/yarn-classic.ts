@@ -1,5 +1,5 @@
 import lockfile from '@yarnpkg/lockfile'
-import type { Package } from '../types.js'
+import type { Package, PackageVersion } from '../types.js'
 
 /**
  * Parses a Yarn Classic (v1) lockfile and returns a list of packages.
@@ -23,7 +23,8 @@ export function parseYarnClassicLockfile(content: string): Package[] {
     const nameMatch = firstSpec.match(/^(@[^/]+\/[^@]+|[^@]+)@/u)
     if (nameMatch === null) continue
     const name = nameMatch[1]
-    const version = (entry as { version: string }).version
+    const version = (entry as PackageVersion).version
+    if (!version) continue
     const dedupKey = `${name}@${version}`
     if (seen.has(dedupKey)) continue
     seen.set(dedupKey, version)

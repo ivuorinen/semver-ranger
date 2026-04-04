@@ -69,13 +69,21 @@ function renderTarget(target: AnalysisTarget, allPackages: Package[], showAll: b
   ui.div(`  ${target.name} (${target.source})   ${totalDeclaring} package(s) declare a constraint`)
   ui.div(`  ${'─'.repeat(WIDTH - 4)}`)
 
+  const labelInstalled = `  Safe ${target.name} range (installed):`
+  const labelLatest = `  Safe ${target.name} range (latest):`
+  const labelWidth = Math.max(labelInstalled.length, labelLatest.length) + 2
+  const valueWidth = Math.max(WIDTH - labelWidth, 30)
+
   ui.div(
-    { text: '  Safe range (installed):', width: 30 },
-    { text: safeRangeText(target.intersection, target.ranges.length), width: 50 }
+    { text: labelInstalled, width: labelWidth },
+    { text: safeRangeText(target.intersection, target.ranges.length), width: valueWidth }
   )
   ui.div(
-    { text: '  Safe range (latest):', width: 30 },
-    { text: safeRangeText(target.latestIntersection, target.latestRanges.length), width: 50 }
+    { text: labelLatest, width: labelWidth },
+    {
+      text: safeRangeText(target.latestIntersection, target.latestRanges.length),
+      width: valueWidth
+    }
   )
 
   if (target.ranges.length > 0) {

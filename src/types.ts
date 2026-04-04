@@ -31,6 +31,26 @@ export interface AnalysisTarget {
   latestConflicts: RangeEntry[]
 }
 
+export interface ResolvedLockfile {
+  lockfilePath: string
+  lockfileType: LockfileType
+  manager: ManagerType
+}
+
+export interface NameVersion {
+  name: string
+  version: string
+}
+
+export interface PackageVersion {
+  version: string
+}
+
+export interface PackageDeps {
+  dependencies?: Record<string, string>
+  devDependencies?: Record<string, string>
+}
+
 export interface CliOptions {
   lockfilePath?: string
   offline: boolean
