@@ -1,5 +1,5 @@
 import { parse as parseYaml } from 'yaml'
-import type { Package } from '../types.js'
+import type { Package, NameVersion } from '../types.js'
 
 interface PnpmLock {
   lockfileVersion?: string | number
@@ -19,9 +19,9 @@ interface PnpmPackageEntry {
  * Extracts the package name and version from a pnpm lockfile key.
  * Handles both v6 format (/pkg@1.0.0) and v9 format (pkg@1.0.0).
  * @param {string} key The raw package key from the lockfile.
- * @returns {{ name: string; version: string } | null} Parsed name/version or null.
+ * @returns {NameVersion | null} Parsed name/version or null.
  */
-function extractNameVersion(key: string): { name: string; version: string } | null {
+function extractNameVersion(key: string): NameVersion | null {
   // Strip peer dep suffix: /pkg@1.0.0(react@18.0.0) -> /pkg@1.0.0
   const stripped = key.replace(/\([^)]*\)/gu, '').trim()
 

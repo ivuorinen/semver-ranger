@@ -1,12 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { parse as parseYaml } from 'yaml'
-import type { Package, LockfileType } from '../types.js'
-
-interface PackageJson {
-  dependencies?: Record<string, string>
-  devDependencies?: Record<string, string>
-}
+import type { Package, LockfileType, PackageDeps } from '../types.js'
 
 interface NpmLockPackageEntry {
   dependencies?: Record<string, string>
@@ -132,10 +127,10 @@ export function filterDevPackages(
   lockfileContent: string,
   lockfileType: LockfileType
 ): Package[] {
-  let pkgJson: PackageJson
+  let pkgJson: PackageDeps
   try {
     const raw = readFileSync(join(projectDir, 'package.json'), 'utf8')
-    pkgJson = JSON.parse(raw) as PackageJson
+    pkgJson = JSON.parse(raw) as PackageDeps
   } catch {
     return packages
   }

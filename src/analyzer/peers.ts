@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import type { Package, AnalysisTarget, RangeEntry } from '../types.js'
+import type { Package, AnalysisTarget, RangeEntry, PackageDeps } from '../types.js'
 import { computeIntersection } from './intersect.js'
 
 export const WELL_KNOWN_PEERS = [
@@ -31,10 +31,7 @@ export function detectPeerTargets(projectDir: string, extraChecks: string[]): st
 
   try {
     const content = readFileSync(join(projectDir, 'package.json'), 'utf8')
-    const pkg = JSON.parse(content) as {
-      dependencies?: Record<string, string>
-      devDependencies?: Record<string, string>
-    }
+    const pkg = JSON.parse(content) as PackageDeps
     const allDeps = {
       ...pkg.dependencies,
       ...pkg.devDependencies
