@@ -9,6 +9,11 @@ const CONCURRENCY = 4
 
 interface ResolveOptions {
   offline: boolean
+  onProgress?: (completed: number, total: number, cached: number) => void
+}
+
+interface CacheCounter {
+  cached: number
 }
 
 interface RegistryManifest {
@@ -31,12 +36,21 @@ function encodeName(name: string): string {
  * Fetches manifest data for a specific package version from the registry.
  * @param {string} name The package name.
  * @param {string} version The package version.
+ * @param {{ cached: number }} counter Mutable counter tracking cache hits.
+ * @param {number} counter.cached Number of cache hits so far.
  * @returns {Promise<RegistryManifest | null>} Manifest data or null on failure.
  */
-async function fetchManifest(name: string, version: string): Promise<RegistryManifest | null> {
+async function fetchManifest(
+  name: string,
+  version: string,
+  counter: CacheCounter
+): Promise<RegistryManifest | null> {
   const cacheKey = `${name}@${version}`
   const cached = getVersionData(cacheKey)
-  if (cached !== null) return cached
+  if (cached !== null) {
+    counter.cached++
+    return cached
+  }
 
   try {
     const url = `${REGISTRY}/${encodeName(name)}/${version}`
@@ -57,18 +71,26 @@ async function fetchManifest(name: string, version: string): Promise<RegistryMan
 /**
  * Fetches the latest version manifest for a package from the registry.
  * @param {string} name The package name.
+ * @param {{ cached: number }} counter Mutable counter tracking cache hits.
+ * @param {number} counter.cached Number of cache hits so far.
  * @returns {Promise<(RegistryManifest & { version: string }) | null>} Latest manifest or null.
  */
-async function fetchLatest(name: string): Promise<(RegistryManifest & { version: string }) | null> {
+async function fetchLatest(
+  name: string,
+  counter: CacheCounter
+): Promise<(RegistryManifest & { version: string }) | null> {
   const cached = getLatestData(name)
-  if (cached !== null) return cached
+  if (cached !== null) {
+    counter.cached++
+    return cached
+  }
 
   try {
     const url = `${REGISTRY}/${encodeName(name)}/latest`
     const res = await fetch(url)
     if (!res.ok) return null
     const data = (await res.json()) as RegistryManifest & { version: string }
-    if (data.version === '') return null
+    if (!data.version) return null
     const entry = {
       version: data.version,
       engines: data.engines,
@@ -84,14 +106,16 @@ async function fetchLatest(name: string): Promise<(RegistryManifest & { version:
 /**
  * Processes a batch of packages by fetching their registry data in parallel.
  * @param {Package[]} batch The batch of packages to process.
+ * @param {{ cached: number }} counter Mutable counter tracking cache hits.
+ * @param {number} counter.cached Number of cache hits so far.
  * @returns {Promise<Package[]>} Packages enriched with registry data.
  */
-async function processBatch(batch: Package[]): Promise<Package[]> {
+async function processBatch(batch: Package[], counter: CacheCounter): Promise<Package[]> {
   return await Promise.all(
     batch.map(async pkg => {
       const [current, latest] = await Promise.all([
-        fetchManifest(pkg.name, pkg.version),
-        fetchLatest(pkg.name)
+        fetchManifest(pkg.name, pkg.version, counter),
+        fetchLatest(pkg.name, counter)
       ])
       return {
         ...pkg,
@@ -135,10 +159,14 @@ export async function resolveRegistry(
   }
 
   const result: Package[] = []
+  let completedCount = 0
+  const cacheCounter = { cached: 0 }
   for (let i = 0; i < packages.length; i += CONCURRENCY) {
     const batch = packages.slice(i, i + CONCURRENCY)
-    const resolved = await processBatch(batch)
+    const resolved = await processBatch(batch, cacheCounter)
     result.push(...resolved)
+    completedCount += batch.length
+    options.onProgress?.(completedCount, packages.length, cacheCounter.cached)
   }
   return result
 }
