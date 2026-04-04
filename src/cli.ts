@@ -105,9 +105,10 @@ async function main(): Promise<void> {
   const projectDir = dirname(lockfilePath)
   const lockfileBase = basename(lockfilePath)
   const parseSpinner = createPhaseSpinner(`Parsing ${lockfileBase}`)
-  const content = readFileSync(lockfilePath, 'utf8')
+  let content: string
   let packages: Package[]
   try {
+    content = readFileSync(lockfilePath, 'utf8')
     if (lockfileType === 'npm') {
       packages = parseNpmLockfile(content)
     } else if (lockfileType === 'yarn-classic') {
