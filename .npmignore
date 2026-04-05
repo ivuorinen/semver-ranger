@@ -14,3 +14,13 @@ CLAUDE.md
 .nvmrc
 .npmrc
 .gitignore
+.commitlintrc.json
+.editorconfig
+.envrc
+.grype.yaml
+.markdownlint-cli2.jsonc
+.markdownlint.json
+.mega-linter.yml
+.prettierrc.mjs
+.releaserc.json
+.tool-versions
