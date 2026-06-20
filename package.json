@@ -1,6 +1,6 @@
 {
   "name": "@ivuorinen/semver-ranger",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Parses lockfiles to find engine and peer dependency version ranges across your full dependency tree",
   "type": "module",
   "main": "dist/cli.js",
