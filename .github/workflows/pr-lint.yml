@@ -6,10 +6,7 @@ on:
     branches: [main]
   workflow_call: {}
 
-permissions:
-  contents: read
-  packages: read
-  statuses: write
+permissions: {}
 
 env:
   # Workflow-level fix behaviour (linter config lives in .mega-linter.yml)
@@ -28,8 +25,14 @@ jobs:
     permissions:
       contents: write
       issues: write
+      packages: read
       pull-requests: write
       security-events: write
+      # Required by GITHUB_STATUS_REPORTER in .mega-linter.yml. Job-level
+      # permissions replace the workflow-level block rather than merging with
+      # it, so omitting this made every status post return 403 and failed the
+      # whole job regardless of lint results.
+      statuses: write
 
     steps:
       - name: Checkout Code
