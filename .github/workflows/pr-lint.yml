@@ -36,12 +36,18 @@ jobs:
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           token: ${{ secrets.PAT || secrets.GITHUB_TOKEN }}
+          # NOTE: credentials stay persisted in .git/config because
+          # git-auto-commit-action below pushes with them and takes no token
+          # input. The install step is therefore run with --ignore-scripts so
+          # PR-authored lifecycle scripts cannot read them.
           # If you use VALIDATE_ALL_CODEBASE = true,
           # you can remove this line to improve performances
           fetch-depth: 0
 
       - name: Install dependencies
-        run: npm ci
+        # --ignore-scripts: this job installs PR-authored dependency manifests;
+        # linting needs no lifecycle scripts.
+        run: npm ci --ignore-scripts
 
       # MegaLinter
       - name: MegaLinter

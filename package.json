@@ -13,7 +13,9 @@
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
-    "lint": "prettier --write . && eslint --fix .",
+    "lint": "prettier --check . && eslint .",
+    "lint:fix": "prettier --write . && eslint --fix .",
+    "typecheck": "tsc --noEmit",
     "test": "node --import tsx/esm --test 'test/**/*.test.ts'",
     "cov": "node --experimental-test-coverage --import tsx/esm --test 'test/**/*.test.ts'"
   },
@@ -63,5 +65,13 @@
     "tsx": "^4.0.0",
     "typescript": "^6.0.2",
     "typescript-eslint": "^8.0.0"
+  },
+  "allowScripts": {
+    "esbuild@0.27.7": true,
+    "esbuild@0.28.1": true,
+    "@ivuorinen/eslint-config@1.4.0": true,
+    "@ivuorinen/semantic-release-config@1.6.3": true,
+    "@ivuorinen/prettier-config@1.3.3": true,
+    "@ivuorinen/markdownlint-config@1.3.4": true
   }
 }
