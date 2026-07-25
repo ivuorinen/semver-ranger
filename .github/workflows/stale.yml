@@ -10,13 +10,18 @@ on:
 
 permissions: {}
 
+concurrency:
+  group: ${{ github.ref }}-${{ github.workflow }}
+  cancel-in-progress: true
+
 jobs:
   stale:
+    name: Stale
     runs-on: ubuntu-latest
     permissions:
-      contents: read
-      issues: write
-      pull-requests: write
+      contents: read # read repository metadata to evaluate staleness
+      issues: write # comment on and close stale issues
+      pull-requests: write # comment on and close stale pull requests
     steps:
       - uses: ivuorinen/actions/stale@133e70a949f087aca68c8ab71b095421f1519496 # v2026.07.24
         with:

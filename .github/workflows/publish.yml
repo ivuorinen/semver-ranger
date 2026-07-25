@@ -7,6 +7,12 @@ on:
 
 permissions: {}
 
+# Serialise releases: two concurrent runs would race on the version bump and
+# the tag push. Never cancel a release mid-flight.
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
 jobs:
   ci:
     uses: ./.github/workflows/ci.yml
@@ -21,10 +27,10 @@ jobs:
     needs: [ci]
 
     permissions:
-      contents: write
-      issues: write
-      pull-requests: write
-      id-token: write
+      contents: write # semantic-release pushes the release commit and tag
+      issues: write # semantic-release comments on released issues
+      pull-requests: write # semantic-release comments on released PRs
+      id-token: write # OIDC for npm trusted publishing and provenance
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -39,7 +45,11 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version-file: '.nvmrc'
-          always-auth: true
+          # No always-auth: publishing uses npm trusted publishing via the
+          # job's id-token permission, not a stored credential. Confirmed on
+          # the registry — releases are attributed to
+          # "GitHub Actions <npm-oidc-no-reply@github.com>" and carry
+          # provenance attestations, and no NPM_TOKEN exists in this repo.
           registry-url: 'https://registry.npmjs.org'
           scope: '@ivuorinen'
 
