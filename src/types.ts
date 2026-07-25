@@ -23,12 +23,16 @@ export interface AnalysisTarget {
   intersection: string | null
   /** Entries that break the installed intersection */
   conflicts: RangeEntry[]
+  /** Installed entries whose range string is not valid semver */
+  invalidRanges: RangeEntry[]
   /** Ranges from latest available versions */
   latestRanges: RangeEntry[]
   /** Computed safe range for latest versions; null if conflict */
   latestIntersection: string | null
   /** Entries that break the latest intersection */
   latestConflicts: RangeEntry[]
+  /** Latest entries whose range string is not valid semver */
+  latestInvalidRanges: RangeEntry[]
 }
 
 export interface ResolvedLockfile {

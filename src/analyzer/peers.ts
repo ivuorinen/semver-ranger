@@ -78,9 +78,12 @@ export function analyzePeers(packages: Package[], peerTargets: string[]): Analys
 
     if (ranges.length === 0 && latestRanges.length === 0) continue
 
-    const { intersection, conflicts } = computeIntersection(ranges)
-    const { intersection: latestIntersection, conflicts: latestConflicts } =
-      computeIntersection(latestRanges)
+    const { intersection, conflicts, invalid } = computeIntersection(ranges)
+    const {
+      intersection: latestIntersection,
+      conflicts: latestConflicts,
+      invalid: latestInvalid
+    } = computeIntersection(latestRanges)
 
     results.push({
       name: targetName,
@@ -88,9 +91,11 @@ export function analyzePeers(packages: Package[], peerTargets: string[]): Analys
       ranges,
       intersection,
       conflicts,
+      invalidRanges: invalid,
       latestRanges,
       latestIntersection,
-      latestConflicts
+      latestConflicts,
+      latestInvalidRanges: latestInvalid
     })
   }
 

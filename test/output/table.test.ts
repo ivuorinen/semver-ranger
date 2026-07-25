@@ -16,7 +16,9 @@ describe('renderOutput', () => {
       conflicts: [],
       latestRanges: [{ package: 'express', version: '5.0.0', range: '>=18.0.0' }],
       latestIntersection: '>=18.0.0',
-      latestConflicts: []
+      latestConflicts: [],
+      invalidRanges: [],
+      latestInvalidRanges: []
     }
   ]
 
@@ -50,7 +52,9 @@ describe('renderOutput', () => {
       {
         ...targets[0],
         latestIntersection: null,
-        latestConflicts: [{ package: 'old-pkg', version: '2.0.0', range: '<20.0.0' }]
+        latestConflicts: [{ package: 'old-pkg', version: '2.0.0', range: '<20.0.0' }],
+        invalidRanges: [],
+        latestInvalidRanges: []
       }
     ]
     const output = renderOutput(conflictingLatest, 10, [], 'package-lock.json', 'npm', false, false)
@@ -77,7 +81,9 @@ describe('renderOutput', () => {
         conflicts: [],
         latestRanges: [],
         latestIntersection: null,
-        latestConflicts: []
+        latestConflicts: [],
+        invalidRanges: [],
+        latestInvalidRanges: []
       }
     ]
     const output = renderOutput(noConstraints, 0, [], 'package-lock.json', 'npm', false, false)
@@ -95,7 +101,9 @@ describe('renderOutput', () => {
         conflicts: [],
         latestRanges: [{ package: 'express', version: '5.0.0', range: '>=18.0.0' }],
         latestIntersection: '>=18.0.0',
-        latestConflicts: []
+        latestConflicts: [],
+        invalidRanges: [],
+        latestInvalidRanges: []
       }
     ]
     const output = renderOutput(latestOnly, 1, [], 'package-lock.json', 'npm', false, false)
@@ -116,7 +124,9 @@ describe('renderOutput', () => {
       {
         ...targets[0],
         latestIntersection: null,
-        latestConflicts: [{ package: 'express', version: '5.0.0', range: '>=20.0.0' }]
+        latestConflicts: [{ package: 'express', version: '5.0.0', range: '>=20.0.0' }],
+        invalidRanges: [],
+        latestInvalidRanges: []
       }
     ]
     const output = renderOutput(
@@ -129,5 +139,40 @@ describe('renderOutput', () => {
       false
     )
     assert.ok(output.includes('express'))
+  })
+})
+
+describe('renderOutput unparseable ranges', () => {
+  /**
+   * Builds a target whose ranges failed semver parsing.
+   * @returns {AnalysisTarget} A target with only invalid ranges.
+   */
+  function invalidTarget(): AnalysisTarget {
+    return {
+      name: 'node',
+      source: 'engines',
+      ranges: [{ package: 'weird-pkg', version: '1.0.0', range: 'current' }],
+      intersection: null,
+      conflicts: [],
+      invalidRanges: [{ package: 'weird-pkg', version: '1.0.0', range: 'current' }],
+      latestRanges: [],
+      latestIntersection: null,
+      latestConflicts: [],
+      latestInvalidRanges: []
+    }
+  }
+
+  // Regression: an unparseable range produced "conflict — no safe range" with an
+  // empty conflict list, sending the user after a nonexistent problem.
+  it('does not report unparseable ranges as a conflict', () => {
+    const output = renderOutput([invalidTarget()], 1, [], 'package-lock.json', 'npm', false, false)
+    assert.ok(!output.includes('conflict — no safe range'))
+    assert.ok(output.includes('no parseable constraints'))
+  })
+
+  it('lists the packages whose ranges could not be parsed', () => {
+    const output = renderOutput([invalidTarget()], 1, [], 'package-lock.json', 'npm', false, false)
+    assert.ok(output.includes('Unparseable ranges'))
+    assert.ok(output.includes('weird-pkg'))
   })
 })
