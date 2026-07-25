@@ -85,6 +85,41 @@ export function andRanges(a: string, b: string): string | null {
   return groups.join(' || ')
 }
 
+// Bounds the re-seeding pass below: conflicts are rare, but a target with many
+// declaring packages should not turn conflict reporting into an O(n^2) sweep.
+const MAX_ALTERNATIVE_SEEDS = 8
+
+interface GreedyRun {
+  combined: string
+  accepted: RangeEntry[]
+  conflicts: RangeEntry[]
+}
+
+/**
+ * Greedily folds entries into one range, starting from a chosen seed.
+ * @param {RangeEntry} seed The entry to start from; always accepted.
+ * @param {RangeEntry[]} entries All entries, in a stable order.
+ * @returns {GreedyRun} The combined range plus the accepted and rejected entries.
+ */
+function greedyFrom(seed: RangeEntry, entries: RangeEntry[]): GreedyRun {
+  let combined = semver.validRange(seed.range) ?? seed.range
+  const accepted: RangeEntry[] = [seed]
+  const conflicts: RangeEntry[] = []
+
+  for (const entry of entries) {
+    if (entry === seed) continue
+    const next = andRanges(combined, entry.range)
+    if (next === null) {
+      conflicts.push(entry)
+    } else {
+      combined = next
+      accepted.push(entry)
+    }
+  }
+
+  return { combined, accepted, conflicts }
+}
+
 /**
  * Computes the semver intersection of multiple range entries.
  * Returns null intersection with conflicts if ranges are disjoint, and reports
@@ -118,22 +153,26 @@ export function computeIntersection(ranges: RangeEntry[]): IntersectionResult {
     return semver.compare(minA, minB)
   })
 
-  const conflicts: RangeEntry[] = []
-  let combined = semver.validRange(sorted[0].range) ?? sorted[0].range
+  let best = greedyFrom(sorted[0], sorted)
 
-  for (let i = 1; i < sorted.length; i++) {
-    const entry = sorted[i]
-    const next = andRanges(combined, entry.range)
-    if (next === null) {
-      conflicts.push(entry)
-    } else {
-      combined = next
+  if (best.conflicts.length > 0) {
+    // The first pass is seeded with the lowest minimum version, and a seed is
+    // accepted by construction — so it can never be reported as a conflict.
+    // That blames whichever entries disagree with the seed even when the seed
+    // is the sole outlier. Re-seed from each conflicting entry and keep the
+    // largest agreeing set, so the packages actually out of step get named.
+    const candidates = best.conflicts.slice(0, MAX_ALTERNATIVE_SEEDS)
+    for (const seed of candidates) {
+      const run = greedyFrom(seed, sorted)
+      if (run.accepted.length > best.accepted.length) {
+        best = run
+      }
     }
   }
 
-  if (conflicts.length > 0) {
-    return { intersection: null, conflicts, invalid }
+  if (best.conflicts.length > 0) {
+    return { intersection: null, conflicts: best.conflicts, invalid }
   }
 
-  return { intersection: simplifyRange(combined), conflicts: [], invalid }
+  return { intersection: simplifyRange(best.combined), conflicts: [], invalid }
 }

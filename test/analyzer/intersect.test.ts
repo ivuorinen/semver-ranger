@@ -167,6 +167,45 @@ describe('computeIntersection semantics', () => {
     }
   })
 
+  // Regression: the greedy pass seeded on the lowest minimum version, and a
+  // seed is accepted by construction, so the sole outlier could never be
+  // named — the report blamed the packages that actually agreed.
+  it('names the outlier, not the packages that agree with each other', () => {
+    const entries = [
+      { package: '@testing-library/react', version: '16.3.0', range: '^18.0.0 || ^19.0.0' },
+      { package: 'react-dom', version: '19.1.0', range: '^19.1.0' },
+      { package: 'some-legacy-lib', version: '3.0.0', range: '^16.0.0 || ^17.0.0' }
+    ]
+    const { intersection, conflicts } = computeIntersection(entries)
+    assert.strictEqual(intersection, null)
+    assert.deepStrictEqual(
+      conflicts.map(c => c.package),
+      ['some-legacy-lib']
+    )
+  })
+
+  it('reports the same conflicts regardless of input order', () => {
+    const entries = [
+      { package: 'a', version: '1.0.0', range: '^18.0.0 || ^19.0.0' },
+      { package: 'b', version: '1.0.0', range: '^19.1.0' },
+      { package: 'c', version: '1.0.0', range: '^16.0.0 || ^17.0.0' }
+    ]
+    const orders = [
+      [0, 1, 2],
+      [2, 1, 0],
+      [1, 2, 0],
+      [0, 2, 1]
+    ]
+    const results = orders.map(o =>
+      computeIntersection(o.map(i => entries[i]))
+        .conflicts.map(x => x.package)
+        .sort()
+        .join(',')
+    )
+    assert.strictEqual(new Set(results).size, 1, `order-dependent: ${results.join(' | ')}`)
+    assert.strictEqual(results[0], 'c')
+  })
+
   it('separates unparseable ranges from genuine conflicts', () => {
     const { intersection, conflicts, invalid } = computeIntersection([
       { package: 'a', version: '1.0.0', range: 'current' },

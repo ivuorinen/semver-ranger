@@ -102,16 +102,19 @@ describe('flushCache', () => {
 
   // Regression: save() ran on every setKey, serializing the whole store each
   // time — O(n^2) bytes written per run. Writes are now deferred to one flush.
-  it('persists deferred writes to disk', async () => {
+  // Distinct keys per store: a shared prefix would let this pass with either
+  // store's save() removed.
+  it('persists deferred writes from both stores to disk', async () => {
     const { flushCache } = await import('../../src/cache/index.js')
-    setVersionData('flush-test@1.0.0', { engines: { node: '>=18' } })
-    setLatestData('flush-test', { version: '2.0.0', engines: { node: '>=20' } })
-    flushCache()
+    setVersionData('flush-version@1.0.0', { engines: { node: '>=18' } })
+    setLatestData('flush-latest', { version: '2.0.0', engines: { node: '>=20' } })
+    assert.strictEqual(flushCache(), null)
 
     const files = readdirSync(getCacheDir())
     assert.ok(files.length > 0, 'expected cache files on disk after flush')
     const written = files.map(f => readFileSync(join(getCacheDir(), f), 'utf8')).join('\n')
-    assert.ok(written.includes('flush-test'))
+    assert.ok(written.includes('flush-version'), 'versions store was not written')
+    assert.ok(written.includes('flush-latest'), 'latest store was not written')
   })
 
   it('is safe to call when nothing was written', async () => {

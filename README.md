@@ -99,9 +99,8 @@ Package                     Installed   Latest      Range
 react-dom                   18.3.1      19.1.0      ^18.3.1
 some-legacy-lib             2.4.1       3.0.0       ^17.0.0 || ^18.0.0
 
-  ⚠  Conflicts at latest (2 package(s) block upgrade):
-⚠  @testing-library/react  16.0.0      16.3.0      ^18.0.0 || ^19.0.0
-⚠  react-dom               18.3.1      19.1.0      ^19.1.0
+  ⚠  Conflicts at latest (1 package(s) block upgrade):
+⚠  some-legacy-lib         2.4.1       3.0.0       ^16.0.0 || ^17.0.0
 ────────────────────────────────────────────────────────────────────────────────
 ```
 

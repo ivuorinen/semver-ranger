@@ -95,6 +95,17 @@ function resolveLockfile(cwd: string, positional?: string): ResolvedLockfile {
 }
 
 /**
+ * Reports a cache-persistence failure without changing the command's outcome.
+ * @param {Error | null} failure The failure returned by flushCache, if any.
+ * @returns {void}
+ */
+function warnOnFlushFailure(failure: Error | null): void {
+  if (failure !== null) {
+    console.error(`Warning: could not persist the registry cache: ${failure.message}`)
+  }
+}
+
+/**
  * Main CLI entry point: detects lockfile, resolves packages,
  * analyzes constraints, and renders output.
  * @returns {Promise<void>} Resolves when analysis and output are complete.
@@ -202,12 +213,14 @@ async function main(): Promise<void> {
   )
 
   console.log(output)
-  flushCache()
+  warnOnFlushFailure(flushCache())
 }
 
 main().catch((err: unknown) => {
-  // Keep whatever was fetched before the failure.
-  flushCache()
+  // Report the original failure first: a cache write problem must never
+  // replace the error the user actually needs to see.
   console.error('Error:', err instanceof Error ? err.message : String(err))
+  // Keep whatever was fetched before the failure.
+  warnOnFlushFailure(flushCache())
   process.exit(1)
 })
