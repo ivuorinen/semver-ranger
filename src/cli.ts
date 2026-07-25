@@ -94,6 +94,40 @@ function resolveLockfile(cwd: string, positional?: string): ResolvedLockfile {
   return { lockfilePath: detected.path, lockfileType: detected.type, manager: detected.manager }
 }
 
+// Node honours these only when started with --use-env-proxy (or
+// NODE_USE_ENV_PROXY=1). Both are read during bootstrap, so a running process
+// cannot switch proxy support on for itself — the best it can do is say so.
+const PROXY_ENV_VARS = ['HTTPS_PROXY', 'https_proxy', 'HTTP_PROXY', 'http_proxy']
+const USE_ENV_PROXY_VAR = 'NODE_USE_ENV_PROXY'
+
+/**
+ * Warns when a proxy is configured in the environment but Node is ignoring it.
+ *
+ * Without this the requests simply fail, and the run reports every package as
+ * unresolved with no hint that a one-flag fix exists.
+ * @returns {void}
+ */
+function warnIfProxyIgnored(): void {
+  const configured = PROXY_ENV_VARS.some(name => {
+    const value = process.env[name]
+    return typeof value === 'string' && value !== ''
+  })
+  if (!configured) return
+
+  const nodeOptions = process.env.NODE_OPTIONS ?? ''
+  const honoured =
+    process.env[USE_ENV_PROXY_VAR] === '1' ||
+    process.execArgv.includes('--use-env-proxy') ||
+    nodeOptions.includes('--use-env-proxy')
+  if (honoured) return
+
+  console.error(
+    'Warning: a proxy is configured in the environment but Node is not using it. ' +
+      'Re-run with NODE_USE_ENV_PROXY=1 to route registry requests through it, ' +
+      'or pass --offline.'
+  )
+}
+
 /**
  * Reports a cache-persistence failure without changing the command's outcome.
  * @param {Error | null} failure The failure returned by flushCache, if any.
@@ -153,6 +187,7 @@ async function main(): Promise<void> {
   // Pass 2: registry (skipped if --offline)
   let failedLookups = 0
   if (values.offline !== true) {
+    warnIfProxyIgnored()
     const progress = createBatchProgress('Fetching registry data', packages.length)
     let lastProgressText = ''
     try {

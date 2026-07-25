@@ -80,3 +80,45 @@ describe('parseNpmLockfile', () => {
     assert.strictEqual(packages.length, 2) // lodash + other, not 3
   })
 })
+
+describe('parseNpmLockfile version validation', () => {
+  // Regression: a missing or non-numeric lockfileVersion fell through to the
+  // v1 branch, which reads `dependencies` — so a malformed lockfile was
+  // reported as one with no dependencies instead of as an error.
+  it('throws when lockfileVersion is missing', () => {
+    assert.throws(
+      () => parseNpmLockfile(JSON.stringify({ packages: {} })),
+      /expected a numeric "lockfileVersion"/u
+    )
+  })
+
+  it('throws when lockfileVersion is not a number', () => {
+    assert.throws(
+      () => parseNpmLockfile(JSON.stringify({ lockfileVersion: '3', packages: {} })),
+      /expected a numeric "lockfileVersion"/u
+    )
+  })
+
+  it('throws on an unsupported lockfileVersion', () => {
+    assert.throws(
+      () => parseNpmLockfile(JSON.stringify({ lockfileVersion: 0, dependencies: {} })),
+      /unsupported package-lock.json lockfileVersion: 0/u
+    )
+  })
+
+  it('still accepts v1 and v3', () => {
+    const v1 = parseNpmLockfile(
+      JSON.stringify({ lockfileVersion: 1, dependencies: { a: { version: '1.0.0' } } })
+    )
+    assert.deepStrictEqual(v1, [{ name: 'a', version: '1.0.0' }])
+
+    const v3 = parseNpmLockfile(
+      JSON.stringify({
+        lockfileVersion: 3,
+        packages: { '': {}, 'node_modules/a': { version: '2.0.0' } }
+      })
+    )
+    assert.strictEqual(v3.length, 1)
+    assert.strictEqual(v3[0].version, '2.0.0')
+  })
+})

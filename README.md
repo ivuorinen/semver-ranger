@@ -109,6 +109,24 @@ declared range is not valid semver, that is reported explicitly rather than
 folded into the result — an unresolved constraint would otherwise make the
 computed range look safer than it is.
 
+### Private registries and proxies
+
+Registry lookups honour npm's own configuration. When the tool is run through
+`npm exec` / `npx`, npm exports the resolved `.npmrc` as `npm_config_*`
+environment variables, so a mirror (`registry=`) and per-scope registries
+(`@acme:registry=`) are picked up automatically.
+
+Node only routes `fetch` through `HTTP_PROXY` / `HTTPS_PROXY` when it is started
+with proxy support enabled, and that cannot be turned on from inside a running
+process. Behind a proxy, run:
+
+```sh
+NODE_USE_ENV_PROXY=1 npx @ivuorinen/semver-ranger
+```
+
+The tool warns when a proxy is configured but not in use, rather than letting
+every lookup fail silently.
+
 ---
 
 ## How it works
