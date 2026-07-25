@@ -5,7 +5,7 @@ import { resolve, basename, dirname } from 'node:path'
 import { parseArgs } from 'node:util'
 import { createRequire } from 'node:module'
 
-import { detectLockfile } from './parsers/detect.js'
+import { detectLockfile, isYarnBerry } from './parsers/detect.js'
 import { parseNpmLockfile } from './parsers/npm.js'
 import { parseYarnClassicLockfile } from './parsers/yarn-classic.js'
 import { parseYarnBerryLockfile } from './parsers/yarn-berry.js'
@@ -17,6 +17,7 @@ import { analyzeEngines } from './analyzer/engines.js'
 import { analyzePeers, detectPeerTargets } from './analyzer/peers.js'
 import { renderOutput } from './output/table.js'
 import { createPhaseSpinner, createBatchProgress } from './output/progress.js'
+import { flushCache } from './cache/index.js'
 import type { Package, ResolvedLockfile, PackageVersion } from './types.js'
 
 const require = createRequire(import.meta.url)
@@ -80,8 +81,7 @@ function resolveLockfile(cwd: string, positional?: string): ResolvedLockfile {
       return { lockfilePath, lockfileType: 'pnpm', manager: 'pnpm' }
     }
     if (base === 'yarn.lock') {
-      const content = readFileSync(lockfilePath, 'utf8')
-      const berry = content.slice(0, 512).includes('__metadata:')
+      const berry = isYarnBerry(lockfilePath)
       return { lockfilePath, lockfileType: berry ? 'yarn-berry' : 'yarn-classic', manager: 'yarn' }
     }
     throw new Error(`unrecognized lockfile: ${base}`)
@@ -140,11 +140,12 @@ async function main(): Promise<void> {
   }
 
   // Pass 2: registry (skipped if --offline)
+  let failedLookups = 0
   if (values.offline !== true) {
     const progress = createBatchProgress('Fetching registry data', packages.length)
     let lastProgressText = ''
     try {
-      packages = await resolveRegistry(packages, {
+      const resolved = await resolveRegistry(packages, {
         offline: false,
         onProgress(completed, total, cached) {
           lastProgressText = `Fetching registry data... ${completed}/${total}${
@@ -153,6 +154,8 @@ async function main(): Promise<void> {
           progress.update(lastProgressText)
         }
       })
+      packages = resolved.packages
+      failedLookups = resolved.failed
       progress.succeed(
         lastProgressText || `Fetching registry data... ${packages.length}/${packages.length}`
       )
@@ -161,7 +164,17 @@ async function main(): Promise<void> {
       throw err
     }
   } else {
-    packages = await resolveRegistry(packages, { offline: true })
+    const resolved = await resolveRegistry(packages, { offline: true })
+    packages = resolved.packages
+  }
+
+  // A dropped constraint can only widen the intersection, so unresolved
+  // lookups make the reported range too permissive — never say so silently.
+  if (failedLookups > 0) {
+    console.error(
+      `Warning: ${failedLookups} registry lookup(s) failed; ` +
+        'the reported ranges may be too permissive.'
+    )
   }
 
   // Analyze
@@ -169,6 +182,13 @@ async function main(): Promise<void> {
   const peerTargetNames = detectPeerTargets(projectDir, values.check ?? [])
   const peerTargets = analyzePeers(packages, peerTargetNames)
   const allTargets = [...engineTargets, ...peerTargets]
+
+  if (allTargets.length === 0 && packages.length > 0) {
+    console.error(
+      'Warning: no engine or peer constraints resolved. npm lockfileVersion 1 carries no ' +
+        'metadata — run without --offline, or install node_modules.'
+    )
+  }
 
   // Render
   const output = renderOutput(
@@ -182,9 +202,12 @@ async function main(): Promise<void> {
   )
 
   console.log(output)
+  flushCache()
 }
 
 main().catch((err: unknown) => {
+  // Keep whatever was fetched before the failure.
+  flushCache()
   console.error('Error:', err instanceof Error ? err.message : String(err))
   process.exit(1)
 })
