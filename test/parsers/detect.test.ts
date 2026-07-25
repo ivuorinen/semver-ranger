@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict'
-import { mkdirSync, writeFileSync, rmSync } from 'node:fs'
+import { mkdirSync, writeFileSync, rmSync, mkdtempSync } from 'node:fs'
 import { join, dirname } from 'node:path'
+import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 import { describe, it, before, after } from 'node:test'
-import { detectLockfile } from '../../src/parsers/detect.js'
+import { detectLockfile, isYarnBerry } from '../../src/parsers/detect.js'
 
 const currentDir = dirname(fileURLToPath(import.meta.url))
 const tmpBase = join(currentDir, '../../.tmp-detect-test')
@@ -59,5 +60,28 @@ describe('detectLockfile', () => {
     mkdirSync(join(tmpBase, 'empty'), { recursive: true })
     const result = detectLockfile(join(tmpBase, 'empty'))
     assert.strictEqual(result, null)
+  })
+})
+
+describe('isYarnBerry', () => {
+  it('detects a berry lockfile from its header', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'semver-ranger-berry-'))
+    const file = join(dir, 'yarn.lock')
+    writeFileSync(file, '# yarn lockfile v1\n\n__metadata:\n  version: 6\n')
+    assert.strictEqual(isYarnBerry(file), true)
+    rmSync(dir, { recursive: true, force: true })
+  })
+
+  it('reads only the header, not the whole file', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'semver-ranger-classic-'))
+    const file = join(dir, 'yarn.lock')
+    // __metadata: appears far past the 512-byte header and must not be matched.
+    writeFileSync(file, `# yarn lockfile v1\n${'#'.repeat(2000)}\n__metadata:\n`)
+    assert.strictEqual(isYarnBerry(file), false)
+    rmSync(dir, { recursive: true, force: true })
+  })
+
+  it('returns false for a missing file', () => {
+    assert.strictEqual(isYarnBerry(join(tmpdir(), 'semver-ranger-does-not-exist.lock')), false)
   })
 })

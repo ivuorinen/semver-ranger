@@ -1,18 +1,27 @@
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync, openSync, readSync, closeSync } from 'node:fs'
 import { join } from 'node:path'
 import type { DetectedLockfile } from '../types.js'
 
+const HEADER_BYTES = 512
+
 /**
  * Checks if a yarn.lock file is a Yarn Berry (v2+) lockfile.
+ * Reads only the file header rather than the whole lockfile.
  * @param {string} lockfilePath Path to the yarn.lock file.
  * @returns {boolean} True if the lockfile is Yarn Berry format.
  */
-function isYarnBerry(lockfilePath: string): boolean {
+export function isYarnBerry(lockfilePath: string): boolean {
+  let fd: number | undefined
   try {
-    const head = readFileSync(lockfilePath, { encoding: 'utf8' })
-    return head.slice(0, 512).includes('__metadata:')
+    fd = openSync(lockfilePath, 'r')
+    const buf = Buffer.alloc(HEADER_BYTES)
+    const read = readSync(fd, buf, 0, HEADER_BYTES, 0)
+    return buf.subarray(0, read).toString('utf8').includes('__metadata:')
+    /* c8 ignore next 3 */
   } catch {
     return false
+  } finally {
+    if (typeof fd !== 'undefined') closeSync(fd)
   }
 }
 

@@ -1,13 +1,19 @@
 import { parseSyml } from '@yarnpkg/parsers'
 import type { Package } from '../types.js'
 
+interface YarnBerryEntry {
+  version?: string
+  dependencies?: Record<string, string>
+  peerDependencies?: Record<string, string>
+}
+
 /**
  * Parses a Yarn Berry (v2+) lockfile and returns a list of packages.
  * @param {string} content The raw string content of the yarn.lock file.
  * @returns {Package[]} Array of parsed packages with name and version.
  */
 export function parseYarnBerryLockfile(content: string): Package[] {
-  const parsed = parseSyml(content) as Record<string, Record<string, string>>
+  const parsed = parseSyml(content) as Record<string, YarnBerryEntry>
 
   const seen = new Map<string, boolean>()
   const result: Package[] = []
@@ -26,7 +32,9 @@ export function parseYarnBerryLockfile(content: string): Package[] {
     if (seen.has(dedupKey)) continue
     seen.set(dedupKey, true)
 
-    result.push({ name, version })
+    // Berry lockfiles record peerDependencies but not engines; engines come
+    // from the registry/local pass.
+    result.push({ name, version, peerDependencies: entry.peerDependencies })
   }
 
   return result

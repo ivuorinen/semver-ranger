@@ -78,3 +78,25 @@ describe('parseYarnBerryLockfile', () => {
     assert.ok(typeof meta === 'undefined')
   })
 })
+
+describe('parseYarnBerryLockfile peerDependencies', () => {
+  // Regression: the parse result was typed as Record<string, Record<string,string>>,
+  // which structurally could not carry the nested peerDependencies map.
+  it('propagates peerDependencies declared in the lockfile', () => {
+    const content = `__metadata:
+  version: 6
+
+"react-dom@npm:18.3.1":
+  version: 18.3.1
+  peerDependencies:
+    react: ^18.3.1
+  checksum: abc
+  languageName: node
+  linkType: hard
+`
+    const packages = parseYarnBerryLockfile(content)
+    const reactDom = packages.find(p => p.name === 'react-dom')
+    assert.ok(typeof reactDom !== 'undefined')
+    assert.deepStrictEqual(reactDom.peerDependencies, { react: '^18.3.1' })
+  })
+})
