@@ -18,6 +18,6 @@ jobs:
       issues: write
       pull-requests: write
     steps:
-      - uses: ivuorinen/actions/stale@de31e11dda6488eabe95e951ebb61c6d9d500865 # v2026.06.30
+      - uses: ivuorinen/actions/stale@133e70a949f087aca68c8ab71b095421f1519496 # v2026.07.24
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
