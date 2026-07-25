@@ -48,6 +48,15 @@ jobs:
           # you can remove this line to improve performances
           fetch-depth: 0
 
+      # Without this the install runs on whatever Node the runner ships rather
+      # than the version this project targets, and a different npm resolves the
+      # lockfile differently — that mismatch failed `npm ci` here while the
+      # identical command passed in ci.yml.
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: '.nvmrc'
+
       - name: Install dependencies
         # --ignore-scripts: this job installs PR-authored dependency manifests;
         # linting needs no lifecycle scripts.
