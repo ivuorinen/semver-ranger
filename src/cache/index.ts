@@ -75,7 +75,6 @@ export function getVersionData(key: string): CachedManifest | null {
  */
 export function setVersionData(key: string, data: CachedManifest): void {
   versionsCache().setKey(key, data)
-  versionsCache().save()
 }
 
 /**
@@ -108,5 +107,17 @@ export function setLatestData(
 ): void {
   const entry: LatestEntry = { data, cachedAt }
   latestCache().setKey(name, entry)
-  latestCache().save()
+}
+
+/**
+ * Writes both cache stores to disk.
+ *
+ * flat-cache serializes the entire store on every save(), so saving per key
+ * costs O(n^2) bytes written across a run. Callers mutate freely and flush
+ * once at the end instead.
+ * @returns {void}
+ */
+export function flushCache(): void {
+  versionsStore?.save()
+  latestStore?.save()
 }

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { rmSync } from 'node:fs'
+import { rmSync, readdirSync, readFileSync } from 'node:fs'
 import { describe, it, before, after } from 'node:test'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -91,5 +91,33 @@ describe('cache', () => {
     setLatestData('old-pkg', data, oldEntry.cachedAt)
     const result = getLatestData('old-pkg')
     assert.strictEqual(result, null)
+  })
+})
+
+describe('flushCache', () => {
+  // This suite runs after the cleanup hook above, so it owns its own teardown.
+  after(() => {
+    rmSync(tmpCacheDir, { recursive: true, force: true })
+  })
+
+  // Regression: save() ran on every setKey, serializing the whole store each
+  // time — O(n^2) bytes written per run. Writes are now deferred to one flush.
+  it('persists deferred writes to disk', async () => {
+    const { flushCache } = await import('../../src/cache/index.js')
+    setVersionData('flush-test@1.0.0', { engines: { node: '>=18' } })
+    setLatestData('flush-test', { version: '2.0.0', engines: { node: '>=20' } })
+    flushCache()
+
+    const files = readdirSync(getCacheDir())
+    assert.ok(files.length > 0, 'expected cache files on disk after flush')
+    const written = files.map(f => readFileSync(join(getCacheDir(), f), 'utf8')).join('\n')
+    assert.ok(written.includes('flush-test'))
+  })
+
+  it('is safe to call when nothing was written', async () => {
+    const { flushCache } = await import('../../src/cache/index.js')
+    assert.doesNotThrow(() => {
+      flushCache()
+    })
   })
 })
