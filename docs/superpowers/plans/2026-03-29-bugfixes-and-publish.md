@@ -12,7 +12,7 @@
 
 ## File Map
 
-```
+```text
 Modified:
   src/parsers/pnpm.ts              ← Bug 1: pnpm v9 engine data from packages block
   src/output/table.ts              ← Bug 2: --all rendering + signature change

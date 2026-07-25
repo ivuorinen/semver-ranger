@@ -156,7 +156,7 @@ progress.succeed()
 
 Add `ora` as a production dependency:
 
-```
+```bash
 npm install ora
 ```
 

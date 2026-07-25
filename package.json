@@ -13,8 +13,9 @@
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
-    "lint": "prettier --check . && eslint .",
-    "lint:fix": "prettier --write . && eslint --fix .",
+    "lint": "prettier --check . && eslint . && npm run lint:md",
+    "lint:md": "markdownlint --config .markdownlint.json --ignore-path .markdownlintignore '**/*.md' '.github/**/*.md'",
+    "lint:fix": "prettier --write . && eslint --fix . && markdownlint --config .markdownlint.json --ignore-path .markdownlintignore --fix '**/*.md' '.github/**/*.md'",
     "typecheck": "tsc --noEmit",
     "test": "node --import tsx/esm --test 'test/**/*.test.ts'",
     "cov": "node --experimental-test-coverage --import tsx/esm --test 'test/**/*.test.ts'"

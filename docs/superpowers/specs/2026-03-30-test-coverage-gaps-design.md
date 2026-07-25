@@ -227,7 +227,7 @@ Add a test for a package that has `engines` field and one without. The fixture s
 
 ## File Map
 
-```
+```text
 Modified:
   test/registry/client.test.ts       ← 7 tests (fetch mock)
   test/graph/index.test.ts           ← 3 tests (npm v1, yarn-classic, yarn-berry)

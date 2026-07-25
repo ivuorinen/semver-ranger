@@ -21,7 +21,7 @@ npm run cov     # Test coverage (experimental-test-coverage)
 
 ## Architecture
 
-```
+```text
 src/
   cli.ts          # Entry point (shebang, parseArgs)
   types.ts        # Shared type definitions

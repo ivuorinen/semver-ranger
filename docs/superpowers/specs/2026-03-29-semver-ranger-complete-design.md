@@ -14,7 +14,7 @@ The project currently has a partial CJS implementation. This spec covers convert
 
 ## CLI Interface
 
-```
+```text
 semver-ranger [lockfile-path] [options]
 ```
 
@@ -40,7 +40,7 @@ semver-ranger [lockfile-path] [options]
 
 ### Module Layout
 
-```
+```text
 src/
   cli.ts              ← arg parsing, pipeline orchestration (no business logic)
   types.ts            ← shared interfaces
@@ -64,7 +64,7 @@ src/
 
 ### Pipeline
 
-```
+```text
 detect lockfile
       ↓
 parse lockfile → Package[]
@@ -189,7 +189,7 @@ Uses `semver` package (already a dep). Iteratively applies `semver.intersects()`
 
 ### Default layout (one section per target)
 
-```
+```text
 semver-ranger — analyzing 247 packages
 
   Lockfile:   package-lock.json (npm)
@@ -280,7 +280,7 @@ export default {
 
 **Runner:** Node built-in `node --test` (no extra dep, ships with Node 22)
 
-```
+```text
 test/
   parsers/
     npm.test.ts

@@ -37,7 +37,7 @@ Iterate `versionBlock` for name/version extraction; look up `metaBlock[key]` for
 
 **Fix:** When `showAll` is true, after the constrained-packages section, add a block:
 
-```
+```text
   All packages (no constraint declared):
     pkg-a    1.0.0    2.0.0    —
     pkg-b    3.1.0    3.2.0    —
@@ -285,7 +285,7 @@ Both `ci.yml` and `pr-lint.yml` use the `workflow_call` trigger so `publish.yml`
 
 ## File Map
 
-```
+```text
 Modified:
   src/parsers/pnpm.ts              ← Bug 1: pnpm v9 engine data
   src/output/table.ts              ← Bug 2: --all rendering + signature
