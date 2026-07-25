@@ -7,14 +7,16 @@ CLI tool that parses npm/yarn/pnpm lockfiles to analyze `engines` and `peerDepen
 ```bash
 npm run build   # Compile TypeScript → dist/ via tsup (ESM)
 npm run dev     # Watch mode compilation
-npm run lint    # Prettier format + ESLint auto-fix
+npm run lint    # Check formatting + lint rules (no writes; this is the CI gate)
+npm run lint:fix # Apply Prettier + ESLint auto-fixes
+npm run typecheck # tsc --noEmit
 npm run test    # Run tests with Node's native test runner
 npm run cov     # Test coverage (experimental-test-coverage)
 ```
 
 ## Requirements
 
-- Node.js 22+ (enforced via `engines` field)
+- Node.js 24+ (enforced via `engines` field: `>=24.0.0`)
 - Use `nvm` to activate the correct version
 
 ## Architecture

@@ -65,35 +65,50 @@ Exit codes: `0` success, `1` unrecoverable error.
 ## Example output
 
 ```text
-semver-ranger — package-lock.json (npm) — 214 packages analyzed
-────────────────────────────────────────────────────────────────────────────────
-node  (engines)  ·  6 packages declare a constraint
+semver-ranger — analyzing 7 packages
 
-  Package                      Installed    Latest       Range
-  typescript                   5.4.5        5.6.3        >=4.7
-  tsx                          4.19.2       4.19.2       >=18.0.0
-  esbuild                      0.21.5       0.24.0       >=12.0.0
-  flat-cache                   6.0.0        6.1.4        >=18
-  env-paths                    4.0.0        4.0.0        >=18
-  semver                       7.6.3        7.6.3        >=10.0.0
-
-  Safe range (installed):       >=18
-  Safe range (latest):          >=18
+Lockfile:     package-lock.json (npm)
+Targets:      node, react
 
 ────────────────────────────────────────────────────────────────────────────────
-react  (peerDependencies)  ·  3 packages declare a constraint
 
-  Package                      Installed    Latest       Range
-  @testing-library/react       16.0.0       16.3.0       ^18.0.0 || ^19.0.0
-  react-dom                    18.3.1       19.1.0       ^18 || ^19
-  some-legacy-lib              2.4.1        3.0.0        ^16 || ^17
+  node (engines)   4 package(s) declare a constraint
+  ────────────────────────────────────────────────────────────────────────────
+Safe node range (installed):    >=20.19.0 <21.0.0-0 || >=22.13.0 <23.0.0-0 ||
+                                >=24.0.0
+Safe node range (latest):       >=20.19.0 <21.0.0-0 || >=22.13.0 <23.0.0-0 ||
+                                >=24.0.0
 
-  Safe range (installed):       ⚠  conflict — no safe range
-  Safe range (latest):          ⚠  conflict — no safe range
+  Most restrictive (installed):
+Package                     Installed   Latest      Range
+typescript                  5.4.5       5.6.3       >=14.17
+tsx                         4.19.2      4.19.2      >=18.0.0
+flat-cache                  6.1.4       6.1.4       >=18
+ora                         9.4.1       9.4.1       ^20.19.0 || ^22.13.0
+                                                    || >=24
+────────────────────────────────────────────────────────────────────────────────
 
-  ⚠  Conflicts at latest (1 package(s) block upgrade):
-  ⚠  some-legacy-lib           2.4.1        3.0.0        ^16 || ^17
+  react (peerDependencies)   3 package(s) declare a constraint
+  ────────────────────────────────────────────────────────────────────────────
+Safe react range (installed):    >=18.3.1 <19.0.0-0
+Safe react range (latest):       ⚠  conflict — no safe range
+
+  Most restrictive (installed):
+Package                     Installed   Latest      Range
+@testing-library/react      16.0.0      16.3.0      ^18.0.0 || ^19.0.0
+react-dom                   18.3.1      19.1.0      ^18.3.1
+some-legacy-lib             2.4.1       3.0.0       ^17.0.0 || ^18.0.0
+
+  ⚠  Conflicts at latest (2 package(s) block upgrade):
+⚠  @testing-library/react  16.0.0      16.3.0      ^18.0.0 || ^19.0.0
+⚠  react-dom               18.3.1      19.1.0      ^19.1.0
+────────────────────────────────────────────────────────────────────────────────
 ```
+
+Table widths adapt to your terminal. When a lookup cannot be resolved, or a
+declared range is not valid semver, that is reported explicitly rather than
+folded into the result — an unresolved constraint would otherwise make the
+computed range look safer than it is.
 
 ---
 
@@ -110,7 +125,7 @@ JSON.
 
 ## Requirements
 
-- Node.js 22 or later
+- Node.js 24 or later (matches the `engines.node` field in `package.json`)
 - `nvm` is recommended to activate the correct version: `nvm use`
 
 ## Development
@@ -123,13 +138,15 @@ cd semver-ranger
 npm install
 ```
 
-| Command         | Description                                  |
-| --------------- | -------------------------------------------- |
-| `npm run build` | Compile TypeScript to `dist/` via tsup (ESM) |
-| `npm run dev`   | Watch mode compilation                       |
-| `npm run lint`  | Prettier format + ESLint auto-fix            |
-| `npm run test`  | Run tests with Node's native test runner     |
-| `npm run cov`   | Test coverage (experimental)                 |
+| Command             | Description                                  |
+| ------------------- | -------------------------------------------- |
+| `npm run build`     | Compile TypeScript to `dist/` via tsup (ESM) |
+| `npm run dev`       | Watch mode compilation                       |
+| `npm run lint`      | Check formatting and lint rules (no writes)  |
+| `npm run lint:fix`  | Apply Prettier and ESLint auto-fixes         |
+| `npm run typecheck` | Type-check with `tsc --noEmit`               |
+| `npm run test`      | Run tests with Node's native test runner     |
+| `npm run cov`       | Test coverage (experimental)                 |
 
 ## Architecture
 
