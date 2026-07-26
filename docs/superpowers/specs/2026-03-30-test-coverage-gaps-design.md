@@ -15,7 +15,7 @@ Overall baseline: 92.50% lines, 79.06% branches, 91.23% functions.
 ## Coverage Gaps
 
 | File                          | Line % | Branch % | Uncovered lines / notes                                |
-|-------------------------------|--------|----------|--------------------------------------------------------|
+| ----------------------------- | ------ | -------- | ------------------------------------------------------ |
 | `src/registry/client.ts`      | 65.04  | 75.00    | 12–13, 15–28, 31–38, 41–55, 60–63 — all network paths  |
 | `src/graph/index.ts`          | 88.89  | 72.41    | 23–25 (interface), 40–53 — npm v1 + yarn-classic paths |
 | `src/output/table.ts`         | 93.06  | 81.82    | 54–65 — `latestConflicts` block; 1 function uncovered  |

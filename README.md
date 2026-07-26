@@ -57,7 +57,7 @@ Run from your project directory to auto-detect the lockfile, or pass a path
 explicitly.
 
 | Option          | Description                                              |
-|-----------------|----------------------------------------------------------|
+| --------------- | -------------------------------------------------------- |
 | `--offline`     | Skip registry lookups; use `node_modules` and cache only |
 | `--check <pkg>` | Add a package to peer dependency analysis (repeatable)   |
 | `--no-dev`      | Exclude devDependencies from analysis                    |
@@ -162,7 +162,7 @@ npm install
 ```
 
 | Command             | Description                                  |
-|---------------------|----------------------------------------------|
+| ------------------- | -------------------------------------------- |
 | `npm run build`     | Compile TypeScript to `dist/` via tsup (ESM) |
 | `npm run dev`       | Watch mode compilation                       |
 | `npm run lint`      | Check formatting and lint rules (no writes)  |

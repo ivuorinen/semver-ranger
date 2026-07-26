@@ -13,6 +13,12 @@ SHOW_SKIPPED_LINTERS: false
 DISABLE_LINTERS:
   - JAVASCRIPT_ES
   - JAVASCRIPT_STANDARD
+  # Fights prettier: it rewrites table separators to |---| while prettier
+  # writes | --- |. With APPLY_FIXES it committed its version, which then
+  # failed `prettier --check` in CI — each tool undoing the other on every
+  # run. Prettier already formats markdown tables and owns markdown
+  # formatting here, as it does line width.
+  - MARKDOWN_MARKDOWN_TABLE_FORMATTER
   - REPOSITORY_DEVSKIM
   - REPOSITORY_KINGFISHER
   - SPELL_CSPELL
