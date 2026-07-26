@@ -68,7 +68,7 @@ semver-ranger [lockfile-path] [options]
 Flag reference table:
 
 | Flag            | Description                                            |
-| --------------- | ------------------------------------------------------ |
+|-----------------|--------------------------------------------------------|
 | `--offline`     | Skip registry; use `node_modules` + cache only         |
 | `--check <pkg>` | Add a package to peer dep analysis (repeatable)        |
 | `--no-dev`      | Exclude devDependencies from analysis                  |
@@ -114,7 +114,7 @@ npm install
 Commands table:
 
 | Command         | Description                                  |
-| --------------- | -------------------------------------------- |
+|-----------------|----------------------------------------------|
 | `npm run build` | Compile TypeScript to `dist/` via tsup (ESM) |
 | `npm run dev`   | Watch mode compilation                       |
 | `npm run lint`  | Prettier format + ESLint auto-fix            |

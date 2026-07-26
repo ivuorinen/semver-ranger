@@ -125,7 +125,7 @@ if (cached !== null) {
 Wire progress into `main()`:
 
 | Phase            | Spinner text                        | Type           |
-| ---------------- | ----------------------------------- | -------------- |
+|------------------|-------------------------------------|----------------|
 | Lockfile parsing | `Parsing {basename}...`             | phase spinner  |
 | Local resolution | `Reading local packages...`         | phase spinner  |
 | Registry lookup  | `Fetching registry data... N/total` | batch progress |
@@ -169,7 +169,7 @@ Remove `src/typings/cliui.d.ts` only if `npm run build` succeeds without it (bun
 ## Files to Modify
 
 | File                     | Change                                            |
-| ------------------------ | ------------------------------------------------- |
+|--------------------------|---------------------------------------------------|
 | `tsup.config.ts`         | Add `noExternal: [/.*/]`                          |
 | `package.json`           | Add `ora` to dependencies                         |
 | `src/output/progress.ts` | **New** — ora wrapper module                      |
