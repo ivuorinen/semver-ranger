@@ -42,7 +42,7 @@ export function parseNpmLockfile(content: string): Package[] {
     throw new Error('unrecognised package-lock.json: expected a numeric "lockfileVersion" field')
   }
 
-  if (lockfileVersion >= 2) {
+  if (lockfileVersion === 2 || lockfileVersion === 3) {
     const v2 = parsed as NpmLockV2V3
     const result: Package[] = []
     const seen = new Map<string, boolean>()

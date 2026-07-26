@@ -85,10 +85,6 @@ export function andRanges(a: string, b: string): string | null {
   return groups.join(' || ')
 }
 
-// Bounds the re-seeding pass below: conflicts are rare, but a target with many
-// declaring packages should not turn conflict reporting into an O(n^2) sweep.
-const MAX_ALTERNATIVE_SEEDS = 8
-
 interface GreedyRun {
   combined: string
   accepted: RangeEntry[]
@@ -118,6 +114,28 @@ function greedyFrom(seed: RangeEntry, entries: RangeEntry[]): GreedyRun {
   }
 
   return { combined, accepted, conflicts }
+}
+
+/**
+ * Picks one entry per distinct normalized range, preserving input order.
+ *
+ * Two packages declaring the same range are interchangeable as seeds, so only
+ * distinct constraints need trying. That keeps the search proportional to the
+ * number of distinct ranges — typically a handful even when hundreds of
+ * packages declare them — rather than to the number of packages.
+ * @param {RangeEntry[]} entries Entries in a stable order.
+ * @returns {RangeEntry[]} One representative per distinct range.
+ */
+function distinctByRange(entries: RangeEntry[]): RangeEntry[] {
+  const seen = new Set<string>()
+  const representatives: RangeEntry[] = []
+  for (const entry of entries) {
+    const key = semver.validRange(entry.range) ?? entry.range
+    if (seen.has(key)) continue
+    seen.add(key)
+    representatives.push(entry)
+  }
+  return representatives
 }
 
 /**
@@ -159,10 +177,17 @@ export function computeIntersection(ranges: RangeEntry[]): IntersectionResult {
     // The first pass is seeded with the lowest minimum version, and a seed is
     // accepted by construction — so it can never be reported as a conflict.
     // That blames whichever entries disagree with the seed even when the seed
-    // is the sole outlier. Re-seed from each conflicting entry and keep the
-    // largest agreeing set, so the packages actually out of step get named.
-    const candidates = best.conflicts.slice(0, MAX_ALTERNATIVE_SEEDS)
-    for (const seed of candidates) {
+    // is the sole outlier.
+    //
+    // Every distinct range is tried as a seed and the largest agreeing set
+    // wins. Seeding only from the conflicts of the first pass is not enough:
+    // with one low outlier, eight mid entries and nine high ones, the first
+    // pass conflicts are the mid and high groups, and stopping early at a
+    // fixed number of candidates can miss the high group entirely and report
+    // the nine agreeing entries as the conflict. Ties keep the earliest
+    // candidate, so the result stays independent of input order.
+    for (const seed of distinctByRange(sorted)) {
+      if (seed === sorted[0]) continue
       const run = greedyFrom(seed, sorted)
       if (run.accepted.length > best.accepted.length) {
         best = run

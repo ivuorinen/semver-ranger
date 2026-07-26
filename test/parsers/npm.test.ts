@@ -122,3 +122,34 @@ describe('parseNpmLockfile version validation', () => {
     assert.strictEqual(v3[0].version, '2.0.0')
   })
 })
+
+describe('parseNpmLockfile rejects unsupported versions', () => {
+  // Regression: `lockfileVersion >= 2` accepted 4 and 2.5, contradicting the
+  // documented "supports 1, 2, and 3" contract and parsing an unknown future
+  // schema as if it were v3.
+  it('throws on a future major lockfileVersion', () => {
+    assert.throws(
+      () => parseNpmLockfile(JSON.stringify({ lockfileVersion: 4, packages: {} })),
+      /unsupported package-lock.json lockfileVersion: 4/u
+    )
+  })
+
+  it('throws on a fractional lockfileVersion', () => {
+    assert.throws(
+      () => parseNpmLockfile(JSON.stringify({ lockfileVersion: 2.5, packages: {} })),
+      /unsupported package-lock.json lockfileVersion: 2.5/u
+    )
+  })
+
+  it('accepts exactly 2', () => {
+    const out = parseNpmLockfile(
+      JSON.stringify({
+        lockfileVersion: 2,
+        packages: { '': {}, 'node_modules/a': { version: '1.2.3' } }
+      })
+    )
+    assert.strictEqual(out.length, 1)
+    assert.strictEqual(out[0].name, 'a')
+    assert.strictEqual(out[0].version, '1.2.3')
+  })
+})

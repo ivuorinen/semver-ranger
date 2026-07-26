@@ -184,6 +184,35 @@ describe('computeIntersection semantics', () => {
     )
   })
 
+  // Regression: seeding only from the first pass's conflicts, capped at a
+  // fixed count, could miss the largest agreeing group entirely. With one low
+  // outlier, eight mid entries and nine high ones, the cap never reached the
+  // high group and the nine agreeing entries were reported as the conflict.
+  it('finds the largest agreeing group beyond the first few candidates', () => {
+    const entries = [
+      { package: 'low-1', version: '1.0.0', range: '>=0.0.0 <1.0.0' },
+      ...Array.from({ length: 8 }, (_, i) => ({
+        package: `mid-${String(i + 1)}`,
+        version: '1.0.0',
+        range: '>=2.0.0 <3.0.0'
+      })),
+      ...Array.from({ length: 9 }, (_, i) => ({
+        package: `high-${String(i + 1)}`,
+        version: '1.0.0',
+        range: '>=10.0.0 <11.0.0'
+      }))
+    ]
+    const { intersection, conflicts } = computeIntersection(entries)
+    assert.strictEqual(intersection, null)
+    // The nine "high" entries agree with each other, so they are the group to
+    // keep; everything else is the outlier set.
+    assert.strictEqual(conflicts.length, 9)
+    assert.ok(
+      conflicts.every(c => c.package.startsWith('low-') || c.package.startsWith('mid-')),
+      `blamed an agreeing entry: ${conflicts.map(c => c.package).join(', ')}`
+    )
+  })
+
   it('reports the same conflicts regardless of input order', () => {
     const entries = [
       { package: 'a', version: '1.0.0', range: '^18.0.0 || ^19.0.0' },
