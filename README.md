@@ -1,6 +1,12 @@
-[![npm version](https://img.shields.io/npm/v/@ivuorinen/semver-ranger)](https://www.npmjs.com/package/@ivuorinen/semver-ranger)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Node.js](https://img.shields.io/node/v/@ivuorinen/semver-ranger)](https://nodejs.org)
+[![npm version][npm-badge]][npm-url]
+[![License: MIT][license-badge]][license-url] [![Node.js][node-badge]][node-url]
+
+[npm-badge]: https://img.shields.io/npm/v/@ivuorinen/semver-ranger
+[npm-url]: https://www.npmjs.com/package/@ivuorinen/semver-ranger
+[license-badge]: https://img.shields.io/badge/License-MIT-blue.svg
+[license-url]: LICENSE
+[node-badge]: https://img.shields.io/node/v/@ivuorinen/semver-ranger
+[node-url]: https://nodejs.org
 
 # semver-ranger
 
@@ -172,7 +178,7 @@ src/
   cli.ts          Entry point — argument parsing and pipeline orchestration
   types.ts        Shared TypeScript type definitions
   analyzer/       Semver intersection logic for engines and peer constraints
-  parsers/        Lockfile parsers: npm, yarn-classic, yarn-berry, pnpm, auto-detect
+  parsers/        Lockfile parsers: npm, yarn classic/berry, pnpm, detect
   registry/       npm registry client and local node_modules fallback
   graph/          Dependency graph traversal and devDependency filtering
   cache/          flat-cache wrapper for registry responses

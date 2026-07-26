@@ -1,0 +1,51 @@
+# osv-scanner suppressions.
+#
+# Two groups, both deliberate. grype and trivy already skip test/fixtures via
+# .grype.yaml and REPOSITORY_TRIVY_ARGUMENTS; osv-scanner never got the same
+# treatment, which is why it was the only scanner failing on them.
+
+# --- Group 1: test fixtures -------------------------------------------------
+# test/fixtures/* are sample lockfiles pinned to old versions on purpose, so the
+# parsers have something realistic to parse. Nothing here is installed or
+# executed; bumping them would defeat the fixtures' purpose.
+
+[[IgnoredVulns]]
+id = "GHSA-qwcr-r2fm-qrc7"
+reason = "body-parser in test/fixtures — a parser sample, never installed or run"
+
+[[IgnoredVulns]]
+id = "GHSA-v422-hmwv-36x6"
+reason = "body-parser in test/fixtures — a parser sample, never installed or run"
+
+[[IgnoredVulns]]
+id = "GHSA-qw6h-vgh9-j6wx"
+reason = "express in test/fixtures — a parser sample, never installed or run"
+
+[[IgnoredVulns]]
+id = "GHSA-rv95-896h-c2vc"
+reason = "express in test/fixtures — a parser sample, never installed or run"
+
+# --- Group 2: dev-only transitives with no safe fix -------------------------
+# All three are build/lint tooling, absent from the published package: the
+# bundle is produced by tsup and `npm publish` ships dist/ only. Each was
+# checked for a real fix first; none has one that does not cause more risk than
+# the advisory. Revisit when the upstream ranges move.
+
+[[IgnoredVulns]]
+id = "GHSA-mh99-v99m-4gvg"
+reason = """
+brace-expansion, dev-only via @eslint/eslintrc and npm. The only fix npm \
+offers is a major downgrade of @ivuorinen/eslint-config to 0.5.7"""
+
+[[IgnoredVulns]]
+id = "GHSA-g7r4-m6w7-qqqr"
+reason = """
+esbuild dev-server advisory, dev-only via tsup, which pins esbuild ^0.27.0. \
+Low severity, the dev server is never started, and overriding a \
+build-critical dependency is the larger risk"""
+
+[[IgnoredVulns]]
+id = "GHSA-r292-9mhp-454m"
+reason = """
+tar, dev-only and nested under the npm package. npm audit reports no fix \
+available"""

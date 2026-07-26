@@ -23,6 +23,12 @@ DISABLE_LINTERS:
 # Skip test fixtures — they intentionally use old package versions for parser tests
 REPOSITORY_TRIVY_ARGUMENTS: --skip-dirs test/fixtures
 
+# osv-scanner has no path-exclusion flag, so the same fixture exemption plus the
+# dev-only advisories with no safe fix live in osv-scanner.toml. Passed
+# explicitly because osv-scanner otherwise looks for config beside each
+# manifest, which would miss the fixtures under test/fixtures.
+REPOSITORY_OSV_SCANNER_ARGUMENTS: --config=osv-scanner.toml
+
 # Skip files with no registered JSON Schema to avoid false v8r failures
 YAML_V8R_FILTER_REGEX_EXCLUDE: (\.grype\.yaml|test/fixtures)
 
