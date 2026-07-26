@@ -42,17 +42,25 @@ function renderPackageRow(
 /**
  * Resolves the display text for a safe-range cell.
  * @param {string | null} intersection Computed intersection or null.
- * @param {number} rangeCount Number of contributing ranges.
+ * @param {number} conflictCount Number of entries that break the intersection.
+ * @param {number} invalidCount Number of entries whose range is not valid semver.
  * @returns {string} Display string for the safe-range cell.
  */
-function safeRangeText(intersection: string | null, rangeCount: number): string {
+function safeRangeText(
+  intersection: string | null,
+  conflictCount: number,
+  invalidCount: number
+): string {
   if (intersection !== null) {
     return intersection
   }
-  if (rangeCount === 0) {
-    return '— (no constraints found)'
+  if (conflictCount > 0) {
+    return '⚠  conflict — no safe range'
   }
-  return '⚠  conflict — no safe range'
+  if (invalidCount > 0) {
+    return '— (no parseable constraints)'
+  }
+  return '— (no constraints found)'
 }
 
 /**
@@ -76,12 +84,23 @@ function renderTarget(target: AnalysisTarget, allPackages: Package[], showAll: b
 
   ui.div(
     { text: labelInstalled, width: labelWidth },
-    { text: safeRangeText(target.intersection, target.ranges.length), width: valueWidth }
+    {
+      text: safeRangeText(
+        target.intersection,
+        target.conflicts.length,
+        target.invalidRanges.length
+      ),
+      width: valueWidth
+    }
   )
   ui.div(
     { text: labelLatest, width: labelWidth },
     {
-      text: safeRangeText(target.latestIntersection, target.latestRanges.length),
+      text: safeRangeText(
+        target.latestIntersection,
+        target.latestConflicts.length,
+        target.latestInvalidRanges.length
+      ),
       width: valueWidth
     }
   )
@@ -124,6 +143,15 @@ function renderTarget(target: AnalysisTarget, allPackages: Package[], showAll: b
         { text: entry.version, width: COL_LATEST },
         { text: entry.range, width: COL_RANGE }
       )
+    }
+  }
+
+  const invalid = [...target.invalidRanges, ...target.latestInvalidRanges]
+  if (invalid.length > 0) {
+    ui.div('')
+    ui.div(`  ⚠  Unparseable ranges (${invalid.length} package(s), excluded from analysis):`)
+    for (const entry of invalid) {
+      renderPackageRow(ui, entry, '—', '  ⚠  ')
     }
   }
 

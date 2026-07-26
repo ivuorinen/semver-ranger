@@ -135,3 +135,8 @@ Homestead.json
 next-env.d.ts
 node-compile-cache
 tsx-501/
+
+# MegaLinter writes fetched GitHub config here; a failed fetch lands a
+# 404 response body on disk, which APPLY_FIXES then commits.
+.megalinter_github_conf/
+megalinter-reports/

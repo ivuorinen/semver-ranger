@@ -112,3 +112,61 @@ describe('filterDevPackages', () => {
     assert.deepStrictEqual(edges.get('@scope/pkg'), ['lodash'])
   })
 })
+
+describe('buildEdgeMap nested and berry formats', () => {
+  // Regression: nested keys were kept as "a/node_modules/b", which no edge list
+  // ever references, so BFS stopped at the first non-hoisted package.
+  it('keys nested npm packages by name, not by path', () => {
+    const lock = JSON.stringify({
+      lockfileVersion: 3,
+      packages: {
+        '': {},
+        'node_modules/app-dep': { version: '1.0.0', dependencies: { nested: '^1' } },
+        'node_modules/app-dep/node_modules/nested': {
+          version: '1.0.0',
+          dependencies: { deep: '^1' }
+        },
+        'node_modules/deep': { version: '1.0.0' }
+      }
+    })
+    const edges = buildEdgeMap(lock, 'npm')
+    assert.deepStrictEqual(edges.get('nested'), ['deep'])
+    assert.strictEqual(edges.has('app-dep/node_modules/nested'), false)
+  })
+
+  it('unions dependencies when a name appears hoisted and nested', () => {
+    const lock = JSON.stringify({
+      lockfileVersion: 3,
+      packages: {
+        '': {},
+        'node_modules/dup': { version: '2.0.0', dependencies: { a: '^1' } },
+        'node_modules/other/node_modules/dup': { version: '1.0.0', dependencies: { b: '^1' } }
+      }
+    })
+    const edges = buildEdgeMap(lock, 'npm')
+    assert.deepStrictEqual([...(edges.get('dup') ?? [])].sort(), ['a', 'b'])
+  })
+
+  // Regression: yarn-berry returned an empty map, silently reducing --no-dev to
+  // "drop direct devDependencies only".
+  it('builds an edge map for yarn berry lockfiles', () => {
+    const content = `__metadata:
+  version: 6
+
+"webpack@npm:5.90.0":
+  version: 5.90.0
+  dependencies:
+    tapable: "npm:^2.1.1"
+  languageName: node
+  linkType: hard
+
+"tapable@npm:2.2.1":
+  version: 2.2.1
+  languageName: node
+  linkType: hard
+`
+    const edges = buildEdgeMap(content, 'yarn-berry')
+    assert.deepStrictEqual(edges.get('webpack'), ['tapable'])
+    assert.deepStrictEqual(edges.get('tapable'), [])
+  })
+})

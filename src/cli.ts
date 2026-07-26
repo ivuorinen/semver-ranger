@@ -5,7 +5,7 @@ import { resolve, basename, dirname } from 'node:path'
 import { parseArgs } from 'node:util'
 import { createRequire } from 'node:module'
 
-import { detectLockfile } from './parsers/detect.js'
+import { detectLockfile, isYarnBerry } from './parsers/detect.js'
 import { parseNpmLockfile } from './parsers/npm.js'
 import { parseYarnClassicLockfile } from './parsers/yarn-classic.js'
 import { parseYarnBerryLockfile } from './parsers/yarn-berry.js'
@@ -17,6 +17,7 @@ import { analyzeEngines } from './analyzer/engines.js'
 import { analyzePeers, detectPeerTargets } from './analyzer/peers.js'
 import { renderOutput } from './output/table.js'
 import { createPhaseSpinner, createBatchProgress } from './output/progress.js'
+import { flushCache } from './cache/index.js'
 import type { Package, ResolvedLockfile, PackageVersion } from './types.js'
 
 const require = createRequire(import.meta.url)
@@ -80,8 +81,7 @@ function resolveLockfile(cwd: string, positional?: string): ResolvedLockfile {
       return { lockfilePath, lockfileType: 'pnpm', manager: 'pnpm' }
     }
     if (base === 'yarn.lock') {
-      const content = readFileSync(lockfilePath, 'utf8')
-      const berry = content.slice(0, 512).includes('__metadata:')
+      const berry = isYarnBerry(lockfilePath)
       return { lockfilePath, lockfileType: berry ? 'yarn-berry' : 'yarn-classic', manager: 'yarn' }
     }
     throw new Error(`unrecognized lockfile: ${base}`)
@@ -92,6 +92,51 @@ function resolveLockfile(cwd: string, positional?: string): ResolvedLockfile {
     throw new Error('no lockfile found in current directory')
   }
   return { lockfilePath: detected.path, lockfileType: detected.type, manager: detected.manager }
+}
+
+// Node honours these only when started with --use-env-proxy (or
+// NODE_USE_ENV_PROXY=1). Both are read during bootstrap, so a running process
+// cannot switch proxy support on for itself — the best it can do is say so.
+const PROXY_ENV_VARS = ['HTTPS_PROXY', 'https_proxy', 'HTTP_PROXY', 'http_proxy']
+const USE_ENV_PROXY_VAR = 'NODE_USE_ENV_PROXY'
+
+/**
+ * Warns when a proxy is configured in the environment but Node is ignoring it.
+ *
+ * Without this the requests simply fail, and the run reports every package as
+ * unresolved with no hint that a one-flag fix exists.
+ * @returns {void}
+ */
+function warnIfProxyIgnored(): void {
+  const configured = PROXY_ENV_VARS.some(name => {
+    const value = process.env[name]
+    return typeof value === 'string' && value !== ''
+  })
+  if (!configured) return
+
+  const nodeOptions = process.env.NODE_OPTIONS ?? ''
+  const honoured =
+    process.env[USE_ENV_PROXY_VAR] === '1' ||
+    process.execArgv.includes('--use-env-proxy') ||
+    nodeOptions.includes('--use-env-proxy')
+  if (honoured) return
+
+  console.error(
+    'Warning: a proxy is configured in the environment but Node is not using it. ' +
+      'Re-run with NODE_USE_ENV_PROXY=1 to route registry requests through it, ' +
+      'or pass --offline.'
+  )
+}
+
+/**
+ * Reports a cache-persistence failure without changing the command's outcome.
+ * @param {Error | null} failure The failure returned by flushCache, if any.
+ * @returns {void}
+ */
+function warnOnFlushFailure(failure: Error | null): void {
+  if (failure !== null) {
+    console.error(`Warning: could not persist the registry cache: ${failure.message}`)
+  }
 }
 
 /**
@@ -140,11 +185,13 @@ async function main(): Promise<void> {
   }
 
   // Pass 2: registry (skipped if --offline)
+  let failedLookups = 0
   if (values.offline !== true) {
+    warnIfProxyIgnored()
     const progress = createBatchProgress('Fetching registry data', packages.length)
     let lastProgressText = ''
     try {
-      packages = await resolveRegistry(packages, {
+      const resolved = await resolveRegistry(packages, {
         offline: false,
         onProgress(completed, total, cached) {
           lastProgressText = `Fetching registry data... ${completed}/${total}${
@@ -153,6 +200,8 @@ async function main(): Promise<void> {
           progress.update(lastProgressText)
         }
       })
+      packages = resolved.packages
+      failedLookups = resolved.failed
       progress.succeed(
         lastProgressText || `Fetching registry data... ${packages.length}/${packages.length}`
       )
@@ -161,7 +210,17 @@ async function main(): Promise<void> {
       throw err
     }
   } else {
-    packages = await resolveRegistry(packages, { offline: true })
+    const resolved = await resolveRegistry(packages, { offline: true })
+    packages = resolved.packages
+  }
+
+  // A dropped constraint can only widen the intersection, so unresolved
+  // lookups make the reported range too permissive — never say so silently.
+  if (failedLookups > 0) {
+    console.error(
+      `Warning: ${failedLookups} registry lookup(s) failed; ` +
+        'the reported ranges may be too permissive.'
+    )
   }
 
   // Analyze
@@ -169,6 +228,13 @@ async function main(): Promise<void> {
   const peerTargetNames = detectPeerTargets(projectDir, values.check ?? [])
   const peerTargets = analyzePeers(packages, peerTargetNames)
   const allTargets = [...engineTargets, ...peerTargets]
+
+  if (allTargets.length === 0 && packages.length > 0) {
+    console.error(
+      'Warning: no engine or peer constraints resolved. npm lockfileVersion 1 carries no ' +
+        'metadata — run without --offline, or install node_modules.'
+    )
+  }
 
   // Render
   const output = renderOutput(
@@ -182,9 +248,14 @@ async function main(): Promise<void> {
   )
 
   console.log(output)
+  warnOnFlushFailure(flushCache())
 }
 
 main().catch((err: unknown) => {
+  // Report the original failure first: a cache write problem must never
+  // replace the error the user actually needs to see.
   console.error('Error:', err instanceof Error ? err.message : String(err))
+  // Keep whatever was fetched before the failure.
+  warnOnFlushFailure(flushCache())
   process.exit(1)
 })

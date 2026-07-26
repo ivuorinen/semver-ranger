@@ -1,0 +1,89 @@
+# osv-scanner suppressions.
+#
+# Scoped with [[PackageOverrides]] rather than [[IgnoredVulns]] on purpose.
+# IgnoredVulns matches an advisory ID across the whole scan, so the same ID
+# appearing on a production dependency would be silenced too. These entries
+# pin package, version and ecosystem, and set vulnerability.ignore rather than
+# ignore, so only vulnerabilities — not licence findings — are affected for
+# exactly the artefacts named below.
+#
+# Pinning the version is deliberate: a dependency bump invalidates the entry
+# and the advisory surfaces again for review, loudly, instead of being
+# suppressed forever.
+#
+# grype and trivy already skip test/fixtures via .grype.yaml and
+# REPOSITORY_TRIVY_ARGUMENTS; osv-scanner has no path-exclusion flag, which is
+# why the fixture entries are listed per package here.
+
+# --- Test fixtures ----------------------------------------------------------
+# test/fixtures/* are sample lockfiles pinned to old versions so the parsers
+# have something realistic to read. Nothing here is installed or executed.
+
+[[PackageOverrides]]
+name = "body-parser"
+version = "1.20.1"
+ecosystem = "npm"
+reason = "test/fixtures parser sample, never installed or executed"
+[PackageOverrides.vulnerability]
+ignore = true
+
+[[PackageOverrides]]
+name = "body-parser"
+version = "1.20.3"
+ecosystem = "npm"
+reason = "test/fixtures parser sample, never installed or executed"
+[PackageOverrides.vulnerability]
+ignore = true
+
+[[PackageOverrides]]
+name = "express"
+version = "4.18.2"
+ecosystem = "npm"
+reason = "test/fixtures parser sample, never installed or executed"
+[PackageOverrides.vulnerability]
+ignore = true
+
+[[PackageOverrides]]
+name = "express"
+version = "4.19.2"
+ecosystem = "npm"
+reason = "test/fixtures parser sample, never installed or executed"
+[PackageOverrides.vulnerability]
+ignore = true
+
+# --- Dev-only transitives with no safe fix ----------------------------------
+# Build and lint tooling, absent from the published package: tsup produces the
+# bundle and npm publish ships dist/ only. Each was checked for a real fix
+# first and none has one worth taking.
+
+[[PackageOverrides]]
+name = "brace-expansion"
+version = "1.1.16"
+ecosystem = "npm"
+reason = "dev-only via @eslint/eslintrc; npm's only fix downgrades the eslint config"
+[PackageOverrides.vulnerability]
+ignore = true
+
+[[PackageOverrides]]
+name = "brace-expansion"
+version = "5.0.7"
+ecosystem = "npm"
+reason = "dev-only, nested under the npm package; no fix reachable from here"
+[PackageOverrides.vulnerability]
+ignore = true
+
+[[PackageOverrides]]
+name = "esbuild"
+version = "0.27.7"
+ecosystem = "npm"
+reason = "dev-server advisory; dev-only via tsup, which pins ^0.27.0. Server never starts"
+[PackageOverrides.vulnerability]
+ignore = true
+
+[[PackageOverrides]]
+name = "tar"
+version = "7.5.19"
+ecosystem = "npm"
+reason = "dev-only, nested under the npm package; npm audit reports no fix available"
+[PackageOverrides.vulnerability]
+ignore = true

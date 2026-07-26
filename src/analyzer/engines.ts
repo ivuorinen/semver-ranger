@@ -51,9 +51,12 @@ export function analyzeEngines(packages: Package[], manager: ManagerType): Analy
 
     if (ranges.length === 0 && latestRanges.length === 0) continue
 
-    const { intersection, conflicts } = computeIntersection(ranges)
-    const { intersection: latestIntersection, conflicts: latestConflicts } =
-      computeIntersection(latestRanges)
+    const { intersection, conflicts, invalid } = computeIntersection(ranges)
+    const {
+      intersection: latestIntersection,
+      conflicts: latestConflicts,
+      invalid: latestInvalid
+    } = computeIntersection(latestRanges)
 
     targets.push({
       name: key,
@@ -61,9 +64,11 @@ export function analyzeEngines(packages: Package[], manager: ManagerType): Analy
       ranges,
       intersection,
       conflicts,
+      invalidRanges: invalid,
       latestRanges,
       latestIntersection,
-      latestConflicts
+      latestConflicts,
+      latestInvalidRanges: latestInvalid
     })
   }
 

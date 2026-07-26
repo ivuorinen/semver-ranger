@@ -5,12 +5,21 @@ on:
   push:
     branches: [main]
 
-permissions:
-  contents: read
+permissions: {}
+
+# Serialise releases: two concurrent runs would race on the version bump and
+# the tag push. Never cancel a release mid-flight.
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
 
 jobs:
   ci:
     uses: ./.github/workflows/ci.yml
+    # A reusable-workflow call cannot be granted more than the caller holds,
+    # and the workflow-level block is empty, so state it here.
+    permissions:
+      contents: read
 
   publish:
     name: Publish
@@ -18,20 +27,29 @@ jobs:
     needs: [ci]
 
     permissions:
-      contents: write
-      issues: write
-      pull-requests: write
-      id-token: write
+      contents: write # semantic-release pushes the release commit and tag
+      issues: write # semantic-release comments on released issues
+      pull-requests: write # semantic-release comments on released PRs
+      id-token: write # OIDC for npm trusted publishing and provenance
 
     steps:
-      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          # semantic-release does not use the persisted credentials: when a
+          # plain push fails it builds https://x-access-token:$GITHUB_TOKEN@...
+          # itself (semantic-release/lib/get-git-auth-url.js), and the runner
+          # always sets GITHUB_ACTION, which that lookup requires.
+          persist-credentials: false
 
-      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version-file: '.nvmrc'
-          always-auth: true
+          # No always-auth: publishing uses npm trusted publishing via the
+          # job's id-token permission, not a stored credential. Confirmed on
+          # the registry — releases are attributed to
+          # "GitHub Actions <npm-oidc-no-reply@github.com>" and carry
+          # provenance attestations, and no NPM_TOKEN exists in this repo.
           registry-url: 'https://registry.npmjs.org'
           scope: '@ivuorinen'
 
@@ -40,7 +58,7 @@ jobs:
           path: node_modules
           key: node-modules-${{ hashFiles('**/package-lock.json') }}
 
-      - run: npm ci
+      - run: npm ci --ignore-scripts
 
       - run: npm run build
 

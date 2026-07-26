@@ -25,7 +25,7 @@ A single row of shields:
 
 ### 2. Title + Tagline
 
-```
+```text
 # semver-ranger
 ```
 
@@ -49,19 +49,19 @@ One sentence: find the safe Node.js and peer dependency version ranges across yo
 
 Lead with `npx` (zero-install, primary):
 
-```
+```bash
 npx @ivuorinen/semver-ranger
 ```
 
 Global install as alternative for frequent use:
 
-```
+```bash
 npm install -g @ivuorinen/semver-ranger
 ```
 
 ### 6. Usage
 
-```
+```text
 semver-ranger [lockfile-path] [options]
 ```
 
@@ -105,7 +105,7 @@ Source: construct a plausible example from the `AnalysisTarget` type and output 
 
 ### 10. Development setup
 
-```
+```bash
 git clone https://github.com/ivuorinen/semver-ranger.git
 cd semver-ranger
 npm install
@@ -125,7 +125,7 @@ Commands table:
 
 Annotated `src/` directory tree:
 
-```
+```text
 src/
   cli.ts          Entry point — argument parsing and orchestration
   types.ts        Shared TypeScript type definitions

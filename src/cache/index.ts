@@ -75,7 +75,6 @@ export function getVersionData(key: string): CachedManifest | null {
  */
 export function setVersionData(key: string, data: CachedManifest): void {
   versionsCache().setKey(key, data)
-  versionsCache().save()
 }
 
 /**
@@ -108,5 +107,29 @@ export function setLatestData(
 ): void {
   const entry: LatestEntry = { data, cachedAt }
   latestCache().setKey(name, entry)
-  latestCache().save()
+}
+
+/**
+ * Writes both cache stores to disk.
+ *
+ * flat-cache serializes the entire store on every save(), so saving per key
+ * costs O(n^2) bytes written across a run. Callers mutate freely and flush
+ * once at the end instead.
+ *
+ * Persistence is best-effort and never throws: the cache is a speed
+ * optimisation, so a failed write must not turn a successful run into a
+ * failure, nor replace an error already being reported. Each store is
+ * attempted independently so one failure does not skip the other.
+ * @returns {Error | null} The first write failure, or null if both succeeded.
+ */
+export function flushCache(): Error | null {
+  let failure: Error | null = null
+  for (const store of [versionsStore, latestStore]) {
+    try {
+      store?.save()
+    } catch (err: unknown) {
+      failure ??= err instanceof Error ? err : new Error(String(err))
+    }
+  }
+  return failure
 }

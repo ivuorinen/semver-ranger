@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
+import semver from 'semver'
 import { computeIntersection } from '../../src/analyzer/intersect.js'
 
 describe('computeIntersection', () => {
@@ -74,5 +75,188 @@ describe('computeIntersection', () => {
     assert.ok(orderABC.conflicts.some(c => c.package === 'b'))
     assert.ok(orderBAC.conflicts.some(c => c.package === 'b'))
     assert.ok(orderCAB.conflicts.some(c => c.package === 'b'))
+  })
+})
+
+describe('computeIntersection semantics', () => {
+  const SAMPLE = [
+    '0.9.0',
+    '14.0.0',
+    '15.1.0',
+    '16.5.0',
+    '17.5.0',
+    '18.0.0',
+    '18.2.0',
+    '19.0.0',
+    '20.1.0',
+    '22.3.0'
+  ]
+
+  /**
+   * Asserts the computed intersection admits exactly the versions that satisfy
+   * every input range — no more, no less.
+   * @param {string[]} inputRanges Range strings to intersect.
+   * @returns {void}
+   */
+  function assertExact(inputRanges: string[]): void {
+    const entries = inputRanges.map((range, i) => ({
+      package: `p${String(i)}`,
+      version: '1.0.0',
+      range
+    }))
+    const { intersection } = computeIntersection(entries)
+    for (const v of SAMPLE) {
+      const truth = inputRanges.every(r => semver.satisfies(v, r))
+      const reported = intersection !== null && semver.satisfies(v, intersection)
+      assert.strictEqual(
+        reported,
+        truth,
+        `${v} against ${JSON.stringify(inputRanges)} -> ${JSON.stringify(intersection)}`
+      )
+    }
+  }
+
+  // Regression: ranges were previously combined by string concatenation, which
+  // is wrong because "||" binds looser than the space (AND) operator.
+  it('intersects OR-ranges without corrupting precedence', () => {
+    assertExact(['^17 || ^18', '^16 || ^18'])
+  })
+
+  it('intersects multi-branch OR-ranges', () => {
+    assertExact(['^14 || ^16 || ^18', '^16 || ^18 || ^20'])
+  })
+
+  it('intersects OR-ranges mixed with plain comparators', () => {
+    assertExact(['>=14', '^16 || ^18 || ^20', '>=18'])
+  })
+
+  it('narrows across three successive OR-ranges', () => {
+    assertExact(['^18 || ^20 || ^22', '^20 || ^22', '^22'])
+  })
+
+  it('collapses subsumed comparators to the tightest bound', () => {
+    assertExact(['>=18', '>=18.2.0'])
+    const { intersection } = computeIntersection([
+      { package: 'a', version: '1.0.0', range: '>=18' },
+      { package: 'b', version: '1.0.0', range: '>=18.2.0' }
+    ])
+    assert.strictEqual(intersection, '>=18.2.0')
+  })
+
+  it('reports disjoint OR-ranges as a conflict rather than a bogus range', () => {
+    const { intersection, conflicts } = computeIntersection([
+      { package: 'a', version: '1.0.0', range: '^14 || ^16' },
+      { package: 'b', version: '1.0.0', range: '^18 || ^20' }
+    ])
+    assert.strictEqual(intersection, null)
+    assert.strictEqual(conflicts.length, 1)
+  })
+
+  it('never emits an unsatisfiable OR-group', () => {
+    const { intersection } = computeIntersection([
+      { package: 'a', version: '1.0.0', range: '^14 || ^16 || ^18' },
+      { package: 'b', version: '1.0.0', range: '^16 || ^18 || ^20' }
+    ])
+    assert.ok(intersection !== null)
+    for (const group of intersection.split('||')) {
+      assert.notStrictEqual(
+        semver.minVersion(group.trim()),
+        null,
+        `unsatisfiable group emitted: ${group}`
+      )
+    }
+  })
+
+  // Regression: the greedy pass seeded on the lowest minimum version, and a
+  // seed is accepted by construction, so the sole outlier could never be
+  // named — the report blamed the packages that actually agreed.
+  it('names the outlier, not the packages that agree with each other', () => {
+    const entries = [
+      { package: '@testing-library/react', version: '16.3.0', range: '^18.0.0 || ^19.0.0' },
+      { package: 'react-dom', version: '19.1.0', range: '^19.1.0' },
+      { package: 'some-legacy-lib', version: '3.0.0', range: '^16.0.0 || ^17.0.0' }
+    ]
+    const { intersection, conflicts } = computeIntersection(entries)
+    assert.strictEqual(intersection, null)
+    assert.deepStrictEqual(
+      conflicts.map(c => c.package),
+      ['some-legacy-lib']
+    )
+  })
+
+  // Regression: seeding only from the first pass's conflicts, capped at a
+  // fixed count, could miss the largest agreeing group entirely. With one low
+  // outlier, eight mid entries and nine high ones, the cap never reached the
+  // high group and the nine agreeing entries were reported as the conflict.
+  it('finds the largest agreeing group beyond the first few candidates', () => {
+    const entries = [
+      { package: 'low-1', version: '1.0.0', range: '>=0.0.0 <1.0.0' },
+      ...Array.from({ length: 8 }, (_, i) => ({
+        package: `mid-${String(i + 1)}`,
+        version: '1.0.0',
+        range: '>=2.0.0 <3.0.0'
+      })),
+      ...Array.from({ length: 9 }, (_, i) => ({
+        package: `high-${String(i + 1)}`,
+        version: '1.0.0',
+        range: '>=10.0.0 <11.0.0'
+      }))
+    ]
+    const { intersection, conflicts } = computeIntersection(entries)
+    assert.strictEqual(intersection, null)
+    // The nine "high" entries agree with each other, so they are the group to
+    // keep; everything else is the outlier set.
+    assert.strictEqual(conflicts.length, 9)
+    assert.ok(
+      conflicts.every(c => c.package.startsWith('low-') || c.package.startsWith('mid-')),
+      `blamed an agreeing entry: ${conflicts.map(c => c.package).join(', ')}`
+    )
+  })
+
+  it('reports the same conflicts regardless of input order', () => {
+    const entries = [
+      { package: 'a', version: '1.0.0', range: '^18.0.0 || ^19.0.0' },
+      { package: 'b', version: '1.0.0', range: '^19.1.0' },
+      { package: 'c', version: '1.0.0', range: '^16.0.0 || ^17.0.0' }
+    ]
+    const orders = [
+      [0, 1, 2],
+      [2, 1, 0],
+      [1, 2, 0],
+      [0, 2, 1]
+    ]
+    const results = orders.map(o =>
+      computeIntersection(o.map(i => entries[i]))
+        .conflicts.map(x => x.package)
+        .sort()
+        .join(',')
+    )
+    assert.strictEqual(new Set(results).size, 1, `order-dependent: ${results.join(' | ')}`)
+    assert.strictEqual(results[0], 'c')
+  })
+
+  it('separates unparseable ranges from genuine conflicts', () => {
+    const { intersection, conflicts, invalid } = computeIntersection([
+      { package: 'a', version: '1.0.0', range: 'current' },
+      { package: 'b', version: '1.0.0', range: 'please-use-yarn' }
+    ])
+    assert.strictEqual(intersection, null)
+    assert.strictEqual(conflicts.length, 0)
+    assert.deepStrictEqual(
+      invalid.map(e => e.package),
+      ['a', 'b']
+    )
+  })
+
+  it('intersects the valid ranges and still reports the invalid ones', () => {
+    const { intersection, invalid } = computeIntersection([
+      { package: 'a', version: '1.0.0', range: '>=18' },
+      { package: 'b', version: '1.0.0', range: 'garbage' }
+    ])
+    assert.strictEqual(intersection, '>=18.0.0')
+    assert.deepStrictEqual(
+      invalid.map(e => e.package),
+      ['b']
+    )
   })
 })

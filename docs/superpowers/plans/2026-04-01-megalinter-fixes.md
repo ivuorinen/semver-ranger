@@ -10,7 +10,7 @@
 
 ---
 
-### Task 1: Fix ts-standard violations
+## Task 1: Fix ts-standard violations
 
 **Files:**
 
@@ -315,7 +315,7 @@ EOF
 
 ---
 
-### Task 2: Eliminate jscpd copy-paste clones
+## Task 2: Eliminate jscpd copy-paste clones
 
 **Files:**
 
@@ -481,7 +481,7 @@ EOF
 
 ---
 
-### Task 3: Fix editorconfig — CLAUDE.md line length
+## Task 3: Fix editorconfig — CLAUDE.md line length
 
 **Files:**
 
@@ -534,7 +534,7 @@ EOF
 
 ---
 
-### Task 4: Fix npm-package-json-lint — missing version in fixture
+## Task 4: Fix npm-package-json-lint — missing version in fixture
 
 **Files:**
 
@@ -603,7 +603,7 @@ EOF
 
 ---
 
-### Task 5: Fix kics — pin GitHub Action to full SHA
+## Task 5: Fix kics — pin GitHub Action to full SHA
 
 **Files:**
 
@@ -667,7 +667,7 @@ EOF
 
 ---
 
-### Task 6: Fix grype/trivy — update vulnerable fixture dependencies
+## Task 6: Fix grype/trivy — update vulnerable fixture dependencies
 
 **Files:**
 
@@ -774,7 +774,7 @@ EOF
 
 ---
 
-### Task 7: Fix yaml/prettier — install missing prettier config package
+## Task 7: Fix yaml/prettier — install missing prettier config package
 
 **Files:**
 
@@ -831,7 +831,7 @@ EOF
 
 ---
 
-### Task 8: Final verification
+## Task 8: Final verification
 
 - [ ] **Step 1: Confirm all 7 commits are present**
 
@@ -841,7 +841,7 @@ git log --oneline -10
 
 Expected (most recent first):
 
-```
+```text
 <hash> chore: install missing @ivuorinen/prettier-config devDependency
 <hash> test: bump vulnerable express and body-parser in fixture lockfile
 <hash> ci: pin semantic-release-action to full commit SHA

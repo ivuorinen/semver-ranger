@@ -12,7 +12,7 @@
 
 ## File Map
 
-```
+```text
 Modified test files only — no source changes, no new test files:
   test/registry/client.test.ts       ← 7 new tests (globalThis.fetch mock)
   test/graph/index.test.ts           ← 3 new tests (npm v1, yarn-classic, yarn-berry)

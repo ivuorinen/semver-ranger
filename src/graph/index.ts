@@ -1,7 +1,12 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { parse as parseYaml } from 'yaml'
+import { parseSyml } from '@yarnpkg/parsers'
 import type { Package, LockfileType, PackageDeps } from '../types.js'
+
+interface YarnBerryEntry {
+  dependencies?: Record<string, string>
+}
 
 interface NpmLockPackageEntry {
   dependencies?: Record<string, string>
@@ -41,8 +46,17 @@ export function buildEdgeMap(content: string, type: LockfileType): Map<string, s
       // v2/v3: use packages["node_modules/X"].dependencies
       for (const [key, entry] of Object.entries(lock.packages)) {
         if (!key.startsWith('node_modules/')) continue
-        const name = key.slice('node_modules/'.length)
-        edges.set(name, Object.keys(entry.dependencies ?? {}))
+        // Nested (non-hoisted) packages are keyed by full path
+        // ("node_modules/a/node_modules/b") — the node name is the last segment.
+        const name = key.split('node_modules/').at(-1)
+        if (typeof name === 'undefined') continue
+        const deps = Object.keys(entry.dependencies ?? {})
+        // The same name can appear hoisted and nested; union rather than clobber.
+        const existing = edges.get(name)
+        edges.set(
+          name,
+          typeof existing === 'undefined' ? deps : [...new Set([...existing, ...deps])]
+        )
       }
     } else {
       // v1: use dependencies["X"].requires
@@ -84,8 +98,15 @@ export function buildEdgeMap(content: string, type: LockfileType): Map<string, s
       }
     }
     if (currentPkg !== null) edges.set(currentPkg, [...deps])
+  } else if (type === 'yarn-berry') {
+    const parsed = parseSyml(content) as Record<string, YarnBerryEntry>
+    for (const [key, entry] of Object.entries(parsed)) {
+      if (key === '__metadata') continue
+      const match = key.match(/^(.+?)@(?:npm|patch|portal|link|file|git|workspace):/u)
+      if (match === null) continue
+      edges.set(match[1], Object.keys(entry.dependencies ?? {}))
+    }
   }
-  // yarn-berry: skip (complex symlink format; fall back to no-op)
 
   return edges
 }

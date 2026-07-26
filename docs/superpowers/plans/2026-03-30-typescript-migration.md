@@ -10,7 +10,7 @@
 
 ---
 
-### Task 1: Add tsx-501 to .gitignore
+## Task 1: Add tsx-501 to .gitignore
 
 **Files:**
 
@@ -20,13 +20,13 @@
 
 Open `.gitignore`. After the `node-compile-cache` line (currently the last non-blank line, ~line 136), add:
 
-```
+```text
 tsx-501/
 ```
 
 The end of `.gitignore` should read:
 
-```
+```text
 node-compile-cache
 tsx-501/
 ```
@@ -54,7 +54,7 @@ EOF
 
 ---
 
-### Task 2: Commit GitHub community files and workflow updates
+## Task 2: Commit GitHub community files and workflow updates
 
 **Files:**
 
@@ -80,7 +80,7 @@ git diff --cached --name-only
 
 Expected — exactly these 6 files:
 
-```
+```text
 .github/CODE_OF_CONDUCT.md
 .github/ISSUE_TEMPLATE/bug_report.md
 .github/ISSUE_TEMPLATE/feature_request.md
@@ -100,7 +100,7 @@ EOF
 
 ---
 
-### Task 3: Commit new CI and publish workflows
+## Task 3: Commit new CI and publish workflows
 
 **Files:**
 
@@ -122,7 +122,7 @@ git diff --cached --name-only
 
 Expected — exactly these 2 files:
 
-```
+```text
 .github/workflows/ci.yml
 .github/workflows/publish.yml
 ```
@@ -138,7 +138,7 @@ EOF
 
 ---
 
-### Task 4: Commit build tooling migration
+## Task 4: Commit build tooling migration
 
 **Files:**
 
@@ -164,7 +164,7 @@ git diff --cached --name-only
 
 Expected — exactly these 6 files:
 
-```
+```text
 .prettierrc.json
 eslint.config.mjs
 package-lock.json
@@ -188,7 +188,7 @@ EOF
 
 ---
 
-### Task 5: Commit the TypeScript rewrite (remove old JS, add src/)
+## Task 5: Commit the TypeScript rewrite (remove old JS, add src/)
 
 **Files:**
 
@@ -212,7 +212,7 @@ git diff --cached --name-only
 
 Expected: `src/` files (many entries) plus:
 
-```
+```text
 index.js          ← deletion
 lib/parser.js     ← deletion
 ```
@@ -236,7 +236,7 @@ EOF
 
 ---
 
-### Task 6: Commit the test suite
+## Task 6: Commit the test suite
 
 **Files:**
 
@@ -271,7 +271,7 @@ EOF
 
 ---
 
-### Task 7: Commit documentation
+## Task 7: Commit documentation
 
 **Files:**
 
@@ -305,7 +305,7 @@ EOF
 
 ---
 
-### Task 8: Final verification
+## Task 8: Final verification
 
 - [ ] **Step 1: Confirm all 7 commits landed**
 
@@ -315,7 +315,7 @@ git log --oneline -8
 
 Expected (most recent first):
 
-```
+```text
 <hash> docs: add claude.md and project documentation
 <hash> test: add test suite
 <hash> feat!: rewrite implementation in typescript

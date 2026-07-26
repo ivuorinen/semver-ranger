@@ -22,6 +22,11 @@ max_line_length = off
 
 [docs/**]
 max_line_length = off
+# Historical planning docs. Prettier indents ordered-list continuations to
+# three spaces to align under "1. ", which editorconfig-checker rejects as not
+# a multiple of indent_size. Prettier wins — it is the formatter — so the
+# indent rule is unset here rather than left as a permanent conflict.
+indent_size = unset
 
 [.github/**/{*.markdown,*.md,*.yml}]
 max_line_length = 3000

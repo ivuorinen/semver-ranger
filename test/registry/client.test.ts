@@ -38,7 +38,7 @@ describe('registry client', () => {
     const { resolveRegistry } = await import('../../src/registry/client.js')
     const packages = [{ name: 'express', version: '4.18.2' }]
     // Should complete without throwing even with no network
-    const result = await resolveRegistry(packages, { offline: true })
+    const { packages: result } = await resolveRegistry(packages, { offline: true })
     assert.strictEqual(result.length, 1)
     assert.ok(typeof result[0].latestVersion === 'undefined')
   })
@@ -47,7 +47,7 @@ describe('registry client', () => {
     const { resolveRegistry } = await import('../../src/registry/client.js')
     const packages = [{ name: 'nonexistent-xyz-pkg-12345', version: '1.0.0' }]
     // offline mode — safe to call
-    const result = await resolveRegistry(packages, { offline: true })
+    const { packages: result } = await resolveRegistry(packages, { offline: true })
     assert.strictEqual(result[0].name, 'nonexistent-xyz-pkg-12345')
   })
 
@@ -75,7 +75,7 @@ describe('registry client', () => {
     const originalFetch = globalThis.fetch
     globalThis.fetch = makeDualFetch({ engines: { node: '>=18' }, peerDependencies: {} }, {})
     try {
-      const result = await resolveRegistry(
+      const { packages: result } = await resolveRegistry(
         [{ name: `test-manifest-ok-${Date.now()}`, version: '1.0.0' }],
         { offline: false }
       )
@@ -90,7 +90,7 @@ describe('registry client', () => {
     const originalFetch = globalThis.fetch
     globalThis.fetch = makeFailFetch()
     try {
-      const result = await resolveRegistry(
+      const { packages: result } = await resolveRegistry(
         [{ name: `test-manifest-notok-${Date.now()}`, version: '1.0.0' }],
         { offline: false }
       )
@@ -107,7 +107,7 @@ describe('registry client', () => {
       throw new Error('ECONNREFUSED')
     }
     try {
-      const result = await resolveRegistry(
+      const { packages: result } = await resolveRegistry(
         [{ name: `test-manifest-throw-${Date.now()}`, version: '1.0.0' }],
         { offline: false }
       )
@@ -123,7 +123,7 @@ describe('registry client', () => {
     const originalFetch = globalThis.fetch
     globalThis.fetch = makeDualFetch({}, { version: '5.0.0', engines: { node: '>=20' } })
     try {
-      const result = await resolveRegistry(
+      const { packages: result } = await resolveRegistry(
         [{ name: `test-latest-ok-${Date.now()}`, version: '1.0.0' }],
         { offline: false }
       )
@@ -139,7 +139,7 @@ describe('registry client', () => {
     const originalFetch = globalThis.fetch
     globalThis.fetch = makeFailFetch()
     try {
-      const result = await resolveRegistry(
+      const { packages: result } = await resolveRegistry(
         [{ name: `test-latest-notok-${Date.now()}`, version: '1.0.0' }],
         { offline: false }
       )
@@ -155,7 +155,9 @@ describe('registry client', () => {
     const name = `cached-${Date.now()}`
     setVersionData(`${name}@1.0.0`, { engines: { node: '>=18' }, peerDependencies: {} })
     setLatestData(name, { version: '2.0.0', engines: { node: '>=20' }, peerDependencies: {} })
-    const result = await resolveRegistry([{ name, version: '1.0.0' }], { offline: false })
+    const { packages: result } = await resolveRegistry([{ name, version: '1.0.0' }], {
+      offline: false
+    })
     assert.strictEqual(result[0].engines?.node, '>=18')
     assert.strictEqual(result[0].latestVersion, '2.0.0')
   })
@@ -165,7 +167,7 @@ describe('registry client', () => {
     const originalFetch = globalThis.fetch
     globalThis.fetch = makeDualFetch({}, { engines: { node: '>=18' } })
     try {
-      const result = await resolveRegistry(
+      const { packages: result } = await resolveRegistry(
         [{ name: `test-fix6-${Date.now()}`, version: '1.0.0' }],
         { offline: false }
       )
@@ -199,7 +201,9 @@ describe('registry client', () => {
       return { ok: true, json: async () => ({}) } as unknown as Response
     }
     try {
-      const result = await resolveRegistry([{ name, version: '1.0.0' }], { offline: true })
+      const { packages: result } = await resolveRegistry([{ name, version: '1.0.0' }], {
+        offline: true
+      })
       assert.strictEqual(fetchCalled, false, 'fetch must not be called in offline mode')
       assert.strictEqual(result[0].engines?.node, '>=16')
       assert.strictEqual(result[0].latestVersion, '3.0.0')
@@ -219,10 +223,87 @@ describe('registry client', () => {
       version: '1.0.0'
     }))
     try {
-      const result = await resolveRegistry(pkgs, { offline: false })
+      const { packages: result } = await resolveRegistry(pkgs, { offline: false })
       assert.strictEqual(result.length, 10)
     } finally {
       globalThis.fetch = originalFetch
+    }
+  })
+})
+
+describe('registry failure reporting', () => {
+  // Regression: every failure returned null and was discarded, so a run with no
+  // usable registry data still rendered a clean, over-permissive table.
+  it('counts non-ok responses as failed lookups', async () => {
+    const { resolveRegistry } = await import('../../src/registry/client.js')
+    const original = globalThis.fetch
+    globalThis.fetch = makeFailFetch() as typeof globalThis.fetch
+    try {
+      const { failed } = await resolveRegistry([{ name: 'nope-pkg-xyz', version: '9.9.9' }], {
+        offline: false
+      })
+      // one manifest lookup + one latest lookup
+      assert.strictEqual(failed, 2)
+    } finally {
+      globalThis.fetch = original
+    }
+  })
+
+  it('counts thrown requests as failed lookups', async () => {
+    const { resolveRegistry } = await import('../../src/registry/client.js')
+    const original = globalThis.fetch
+    globalThis.fetch = (async () => {
+      throw new Error('network down')
+    }) as typeof globalThis.fetch
+    try {
+      const { failed } = await resolveRegistry([{ name: 'throws-pkg-xyz', version: '9.9.9' }], {
+        offline: false
+      })
+      assert.strictEqual(failed, 2)
+    } finally {
+      globalThis.fetch = original
+    }
+  })
+
+  it('reports zero failures in offline mode', async () => {
+    const { resolveRegistry } = await import('../../src/registry/client.js')
+    const { failed } = await resolveRegistry([{ name: 'anything', version: '1.0.0' }], {
+      offline: true
+    })
+    assert.strictEqual(failed, 0)
+  })
+})
+
+describe('registryFor', () => {
+  const REGISTRY_ENV = 'npm_config_registry'
+  const SCOPED_ENV = 'npm_config_@acme:registry'
+
+  it('defaults to the public npm registry', async () => {
+    const { registryFor } = await import('../../src/registry/client.js')
+    delete process.env[REGISTRY_ENV]
+    assert.strictEqual(registryFor('express'), 'https://registry.npmjs.org')
+  })
+
+  it('honours npm_config_registry and strips a trailing slash', async () => {
+    const { registryFor } = await import('../../src/registry/client.js')
+    process.env[REGISTRY_ENV] = 'https://npm.internal.example.com/'
+    try {
+      assert.strictEqual(registryFor('express'), 'https://npm.internal.example.com')
+    } finally {
+      delete process.env[REGISTRY_ENV]
+    }
+  })
+
+  it('prefers a scope-specific registry for scoped packages', async () => {
+    const { registryFor } = await import('../../src/registry/client.js')
+    process.env[REGISTRY_ENV] = 'https://npm.internal.example.com'
+    process.env[SCOPED_ENV] = 'https://acme.example.com'
+    try {
+      assert.strictEqual(registryFor('@acme/thing'), 'https://acme.example.com')
+      assert.strictEqual(registryFor('express'), 'https://npm.internal.example.com')
+    } finally {
+      delete process.env[REGISTRY_ENV]
+      delete process.env[SCOPED_ENV]
     }
   })
 })

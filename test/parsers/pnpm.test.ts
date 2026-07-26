@@ -86,3 +86,31 @@ describe('parsePnpmLockfile', () => {
     assert.strictEqual(express.engines?.node, '>= 0.10.0')
   })
 })
+
+describe('parsePnpmLockfile v9 peer suffixes', () => {
+  // Regression: metadata was looked up with the unstripped snapshot key, so any
+  // package with a peer-resolution suffix silently lost engines/peerDependencies.
+  const V9_WITH_PEERS = `lockfileVersion: '9.0'
+packages:
+  vue-router@4.2.5:
+    resolution: { integrity: sha512-x }
+    engines: { node: '>=18' }
+    peerDependencies:
+      vue: ^3.2.0
+snapshots:
+  vue-router@4.2.5(vue@3.3.4):
+    dependencies:
+      vue: 3.3.4
+`
+
+  it('keeps engines for a peer-suffixed snapshot key', () => {
+    const packages = parsePnpmLockfile(V9_WITH_PEERS)
+    assert.strictEqual(packages.length, 1)
+    assert.deepStrictEqual(packages[0].engines, { node: '>=18' })
+  })
+
+  it('keeps peerDependencies for a peer-suffixed snapshot key', () => {
+    const packages = parsePnpmLockfile(V9_WITH_PEERS)
+    assert.deepStrictEqual(packages[0].peerDependencies, { vue: '^3.2.0' })
+  })
+})

@@ -62,7 +62,10 @@ export function parsePnpmLockfile(content: string): Package[] {
     if (seen.has(dedupKey)) continue
     seen.add(dedupKey)
 
-    const meta = metaBlock[key] ?? {}
+    // v9 snapshot keys carry a peer-resolution suffix ("pkg@1.0.0(react@18.0.0)")
+    // while the packages block never does — strip it before the metadata lookup.
+    const strippedKey = key.replace(/\([^)]*\)/gu, '').trim()
+    const meta = metaBlock[strippedKey] ?? metaBlock[key] ?? {}
 
     result.push({
       name,

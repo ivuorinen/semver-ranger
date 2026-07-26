@@ -13,7 +13,10 @@
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
-    "lint": "prettier --write . && eslint --fix .",
+    "lint": "prettier --check . && eslint . && npm run lint:md",
+    "lint:md": "markdownlint --config .markdownlint.json --ignore-path .markdownlintignore '**/*.md' '.github/**/*.md'",
+    "lint:fix": "prettier --write . && eslint --fix . && markdownlint --config .markdownlint.json --ignore-path .markdownlintignore --fix '**/*.md' '.github/**/*.md'",
+    "typecheck": "tsc --noEmit",
     "test": "node --import tsx/esm --test 'test/**/*.test.ts'",
     "cov": "node --experimental-test-coverage --import tsx/esm --test 'test/**/*.test.ts'"
   },
@@ -52,6 +55,7 @@
     "yaml": "^2.0.0"
   },
   "devDependencies": {
+    "@ivuorinen/commitlint-config": "^1.0.42",
     "@ivuorinen/eslint-config": "^1.0.18",
     "@ivuorinen/markdownlint-config": "^1.0.0",
     "@ivuorinen/prettier-config": "^1.0.15",
@@ -63,5 +67,14 @@
     "tsx": "^4.0.0",
     "typescript": "^6.0.2",
     "typescript-eslint": "^8.0.0"
+  },
+  "allowScripts": {
+    "esbuild@0.27.7": true,
+    "esbuild@0.28.1": true,
+    "@ivuorinen/commitlint-config@1.0.42": true,
+    "@ivuorinen/eslint-config@1.4.0": true,
+    "@ivuorinen/semantic-release-config@1.6.3": true,
+    "@ivuorinen/prettier-config@1.3.3": true,
+    "@ivuorinen/markdownlint-config@1.3.4": true
   }
 }
