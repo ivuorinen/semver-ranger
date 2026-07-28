@@ -59,7 +59,7 @@
     "@ivuorinen/eslint-config": "^1.0.18",
     "@ivuorinen/markdownlint-config": "^1.0.0",
     "@ivuorinen/prettier-config": "^1.0.15",
-    "@ivuorinen/semantic-release-config": "^1.0.0",
+    "@ivuorinen/semantic-release-config": "^2.0.0",
     "@types/node": "^24.0.0",
     "@types/semver": "^7.5.0",
     "@types/yarnpkg__lockfile": "^1.1.0",
