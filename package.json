@@ -58,7 +58,7 @@
     "@ivuorinen/commitlint-config": "^1.0.42",
     "@ivuorinen/eslint-config": "^1.0.18",
     "@ivuorinen/markdownlint-config": "^1.0.0",
-    "@ivuorinen/prettier-config": "^1.0.15",
+    "@ivuorinen/prettier-config": "^2.0.0",
     "@ivuorinen/semantic-release-config": "^2.0.0",
     "@types/node": "^24.0.0",
     "@types/semver": "^7.5.0",
