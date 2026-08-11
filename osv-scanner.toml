@@ -73,6 +73,14 @@ reason = "dev-only, nested under the npm package; no fix reachable from here"
 ignore = true
 
 [[PackageOverrides]]
+name = "ip-address"
+version = "10.2.0"
+ecosystem = "npm"
+reason = "dev-only via semantic-release -> npm -> socks; 10.5.0 fixes it but npm bundles its deps, so overrides cannot reach this copy"
+[PackageOverrides.vulnerability]
+ignore = true
+
+[[PackageOverrides]]
 name = "esbuild"
 version = "0.27.7"
 ecosystem = "npm"
