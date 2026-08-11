@@ -72,11 +72,12 @@ reason = "dev-only, nested under the npm package; no fix reachable from here"
 [PackageOverrides.vulnerability]
 ignore = true
 
+# 10.5.0 fixes this, but npm bundles its deps so an override cannot reach it.
 [[PackageOverrides]]
 name = "ip-address"
 version = "10.2.0"
 ecosystem = "npm"
-reason = "dev-only via semantic-release -> npm -> socks; 10.5.0 fixes it but npm bundles its deps, so overrides cannot reach this copy"
+reason = "dev-only, nested under the npm package; no fix reachable from here"
 [PackageOverrides.vulnerability]
 ignore = true
 
@@ -85,6 +86,16 @@ name = "esbuild"
 version = "0.27.7"
 ecosystem = "npm"
 reason = "dev-server advisory; dev-only via tsup, which pins ^0.27.0. Server never starts"
+[PackageOverrides.vulnerability]
+ignore = true
+
+# 6.28.0 fixes this and is already in the tree via @actions/http-client, but
+# this copy is bundled inside npm, so an override cannot dedupe it away.
+[[PackageOverrides]]
+name = "undici"
+version = "6.27.0"
+ecosystem = "npm"
+reason = "dev-only, nested under the npm package; no fix reachable from here"
 [PackageOverrides.vulnerability]
 ignore = true
 
