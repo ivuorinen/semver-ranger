@@ -55,7 +55,7 @@
     "yaml": "^2.0.0"
   },
   "devDependencies": {
-    "@ivuorinen/commitlint-config": "^1.0.50",
+    "@ivuorinen/commitlint-config": "^2.0.0",
     "@ivuorinen/eslint-config": "^1.5.5",
     "@ivuorinen/markdownlint-config": "^1.3.8",
     "@ivuorinen/prettier-config": "^2.0.5",
