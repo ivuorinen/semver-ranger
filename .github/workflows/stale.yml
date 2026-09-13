@@ -23,6 +23,6 @@ jobs:
       issues: write # comment on and close stale issues
       pull-requests: write # comment on and close stale pull requests
     steps:
-      - uses: ivuorinen/actions/stale@133e70a949f087aca68c8ab71b095421f1519496 # v2026.07.24
+      - uses: ivuorinen/actions/stale@6a8c40d9c5ff01b901d382b0ef86d432215aae2a # v2026.09.09
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
