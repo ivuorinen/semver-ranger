@@ -33,11 +33,9 @@ jobs:
         with:
           node-version-file: '.nvmrc'
           registry-url: 'https://registry.npmjs.org'
-
-      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: node_modules
-          key: node-modules-${{ hashFiles('**/package-lock.json') }}
+          # Caches ~/.npm. A node_modules cache is useless here: npm ci deletes
+          # node_modules before installing.
+          cache: npm
 
       - run: npm ci --ignore-scripts
 
@@ -48,6 +46,10 @@ jobs:
       - run: npm test
 
       - run: npm run build
+
+      # Publish only runs on main, so without this a release-tooling bump
+      # merges green and breaks the next release (Publish run 34754580307).
+      - run: node .github/scripts/release-notes-smoke.mjs
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
