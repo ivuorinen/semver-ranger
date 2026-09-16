@@ -52,11 +52,9 @@ jobs:
           # provenance attestations, and no NPM_TOKEN exists in this repo.
           registry-url: 'https://registry.npmjs.org'
           scope: '@ivuorinen'
-
-      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: node_modules
-          key: node-modules-${{ hashFiles('**/package-lock.json') }}
+          # Caches ~/.npm. A node_modules cache is useless here: npm ci deletes
+          # node_modules before installing.
+          cache: npm
 
       - run: npm ci --ignore-scripts
 
