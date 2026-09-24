@@ -18,6 +18,10 @@ CLAUDE.md
 .grype.yaml
 .markdownlint-cli2.jsonc
 .markdownlint.json
+.markdownlintignore
 .mega-linter.yml
+.pre-commit-config.yaml
+.prettierignore
 .prettierrc.mjs
 .releaserc.json
+osv-scanner.toml
