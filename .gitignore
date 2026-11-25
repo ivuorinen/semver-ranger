@@ -134,9 +134,14 @@ Homestead.json
 .vercel
 next-env.d.ts
 node-compile-cache
-tsx-501/
 
 # MegaLinter writes fetched GitHub config here; a failed fetch lands a
-# 404 response body on disk, which APPLY_FIXES then commits.
+# 404 response body on disk that must never be committed.
 .megalinter_github_conf/
 megalinter-reports/
+
+# Project agent rules and hooks are shared; personal overrides stay local.
+# A global `**/.claude/*` exclude otherwise kept them on one machine only.
+!.claude/rules/
+!.claude/hooks/
+!.claude/settings.json
