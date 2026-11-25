@@ -7,15 +7,15 @@ on:
 
 permissions: {}
 
-# Serialise releases: two concurrent runs would race on the version bump and
-# the tag push. Never cancel a release mid-flight.
+# Serialise releases: two concurrent runs would compute the same next version
+# and race on the tag push and the npm publish. Never cancel a release mid-flight.
 concurrency:
   group: ${{ github.workflow }}
   cancel-in-progress: false
 
 jobs:
   ci:
-    uses: ./.github/workflows/ci.yml
+    uses: ./.github/workflows/ci.yml # zizmor: ignore[self-repository]
     # A reusable-workflow call cannot be granted more than the caller holds,
     # and the workflow-level block is empty, so state it here.
     permissions:
@@ -24,10 +24,11 @@ jobs:
   publish:
     name: Publish
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     needs: [ci]
 
     permissions:
-      contents: write # semantic-release pushes the release commit and tag
+      contents: write # semantic-release pushes the release tag and creates the GitHub release
       issues: write # semantic-release comments on released issues
       pull-requests: write # semantic-release comments on released PRs
       id-token: write # OIDC for npm trusted publishing and provenance
@@ -42,7 +43,7 @@ jobs:
           # always sets GITHUB_ACTION, which that lookup requires.
           persist-credentials: false
 
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: '.nvmrc'
           # No always-auth: publishing uses npm trusted publishing via the
@@ -60,6 +61,11 @@ jobs:
 
       - run: npm run build
 
-      - uses: cycjimmy/semantic-release-action@b12c8f6015dc215fe37bc154d4ad456dd3833c90 # v6.0.0
+      # @semantic-release/npm publishes with this Node's npm: package.json
+      # overrides the project's own copy away, because the advisories bundled
+      # inside it cannot be overridden. Trusted publishing needs npm >= 11.5.1.
+      # The locked semantic-release from npm ci runs here; a release action
+      # would install an unlocked latest one in this job that can publish.
+      - run: npm exec --no -- semantic-release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

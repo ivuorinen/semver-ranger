@@ -1,8 +1,10 @@
 # See https://prek.j178.dev for more information.
 # yaml-language-server: $schema=https://www.schemastore.org/prek.json
 repos:
+  # Pinned by commit like every GitHub Action here: a tag can be moved, and these
+  # hooks run on each contributor's machine at commit time.
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v6.0.0
+    rev: 3e8a8703264a2f4a69428a0aa4dcb512790b2c8c # frozen: v6.0.0
     hooks:
       - id: trailing-whitespace
       - id: end-of-file-fixer

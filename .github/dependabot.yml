@@ -1,0 +1,24 @@
+---
+# Renovate opens version updates. Dependabot only raises security updates, and
+# this file sets their titles: semantic-release publishes `chore(deps)` as a
+# patch, so a dev-only bump titled that way released a version with no change
+# for users. Runtime fixes (semver, yaml) keep `chore(deps)` and their release.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    # Version updates are Renovate's; 0 leaves Dependabot to security updates.
+    open-pull-requests-limit: 0
+    commit-message:
+      prefix: chore(deps)
+      prefix-development: chore(dev-deps)
+    # A group mixing types took the production prefix, as #145 did.
+    groups:
+      runtime:
+        applies-to: security-updates
+        dependency-type: production
+      dev:
+        applies-to: security-updates
+        dependency-type: development
