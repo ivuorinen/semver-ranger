@@ -1,15 +1,13 @@
 ---
 name: Feature request
-about: Suggest an idea for this project
+about: Propose a change to what semver-ranger analyses or reports
 title: ''
 labels: enhancement
 assignees: ivuorinen
 ---
 
-**Is your feature request related to a problem? Please describe.** A clear and concise description of what the problem is. Ex. I'm always frustrated when [...]
+**Problem**: what you ran, on which lockfile format, and what the output lacks.
 
-**Describe the solution you'd like**: A clear and concise description of what you want to happen.
+**Proposal**: the flag, output field or behaviour you want.
 
-**Describe alternatives you've considered**: A clear and concise description of any alternative solutions or features you've considered.
-
-**Additional context**: Add any other context or screenshots about the feature request here.
+**Alternatives**: what you do today instead (`--check`, post-processing `--json`, another tool).

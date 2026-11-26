@@ -17,7 +17,7 @@ import { readFileSync } from 'node:fs'
 import { basename, isAbsolute, relative, resolve } from 'node:path'
 import { decide, segments } from './hook-io.mjs'
 
-const EXCLUDED = [':!package-lock.json', ':!docs/audit/findings/**', ':!docs/superpowers/**']
+const EXCLUDED = [':!package-lock.json', ':!docs/audit/findings/**']
 const MAX_LISTED = 10
 // git's global options that take a value; they come before the subcommand.
 const GIT_VALUE_OPTIONS = new Set(['-C', '-c', '--git-dir', '--work-tree', '--namespace'])

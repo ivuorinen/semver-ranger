@@ -5,19 +5,19 @@ CLI tool that parses npm/yarn/pnpm lockfiles to analyze `engines` and `peerDepen
 ## Commands
 
 ```bash
-npm run build   # Compile TypeScript → dist/ via tsup (ESM)
+npm run build   # Compile TypeScript → dist/ via tsc (ESM)
 npm run dev     # Watch mode compilation
 npm run lint    # Check formatting + lint rules (no writes; this is the CI gate)
-npm run lint:fix # Apply Prettier + ESLint auto-fixes
-npm run typecheck # tsc --noEmit
+npm run lint:fix # Apply Prettier, ESLint and markdownlint auto-fixes
+npm run typecheck # tsc --noEmit on tsconfig.json, then on tsconfig.build.json (noUncheckedIndexedAccess)
 npm run test    # Run tests with Node's native test runner
-npm run cov     # Test coverage (experimental-test-coverage)
+npm run cov     # Tests with coverage; fails below 100% (this is what CI runs)
 ```
 
 ## Requirements
 
-- Node.js 24+ (enforced via `engines` field: `>=24.0.0`)
-- Use `nvm` to activate the correct version
+- Published package: the range in `package.json` `engines.node`. Advisory only: `.npmrc` sets no `engine-strict` and the CLI has no runtime check
+- Development: the `.nvmrc` version; `npm run cov` uses `--test-coverage-include-all`, which older Node versions lack
 
 ## Architecture
 
@@ -26,93 +26,28 @@ src/
   cli.ts          # Entry point (shebang, parseArgs)
   types.ts        # Shared type definitions
   analyzer/       # semver constraint logic (engines, peers, intersect)
-  parsers/        # Lockfile parsers: npm, yarn-classic, yarn-berry, pnpm, detect
+  parsers/        # One file per lockfile format: packages and what production installs
   registry/       # npm registry client + local node_modules fallback
-  graph/          # Dependency graph traversal
-  cache/          # flat-cache for registry responses
+  graph/          # --no-dev filter; format knowledge stays in parsers/
+  cache/          # JSON file cache for registry responses
   output/         # CLI table rendering
 
 test/
+  cli.test.ts     # Spawns the CLI: flags, exit codes, warnings
   fixtures/       # Sample lockfiles for parser tests
-  parsers/        # Per-parser tests
-  analyzer/       # Constraint logic tests
+  analyzer/ cache/ graph/ output/ parsers/ registry/   # Mirror src/
 ```
 
 ## Key Patterns
 
 - **ESM-only**: All code uses ES modules; no CJS output
-- **No declaration files**: `dts: false` — not meant to be imported as a library
-- **Native test runner**: `node --test` with `--import tsx/esm` loader; no Jest/Vitest
+- **Bin-only package**: no `main`, and `tsconfig.build.json` emits JavaScript without declaration files — not meant to be imported as a library
+- **Tarball allowlist**: `files` ships only `dist/` (npm adds `package.json`, `README.md` and `LICENSE`); `.github/scripts/pack-check.mjs` fails CI on any other path
+- **Native TypeScript**: Node runs `.ts` directly via type stripping, so relative imports use `.ts` and `tsc` rewrites them to `.js` on build; `erasableSyntaxOnly` and `verbatimModuleSyntax` reject code Node cannot strip
+- **Native test runner**: `node --test` with no loader; no Jest/Vitest
+- **Few runtime dependencies**: `dependencies` in `package.json` is the full list; prefer a Node built-in to adding one
+- **Audit overrides**: entries in `package.json` `overrides` force patched versions upstream has not adopted. The `npm@11` entry aliases `@semantic-release/npm`'s `npm` dependency to the inert `ms`, because npm's bundled `glob` and `minimatch` cannot be overridden; the plugin then runs the `npm` on `PATH`, which trusted publishing needs at >= 11.5.1. To undo the alias, delete the override and the `node_modules/@semantic-release/npm/node_modules/npm` lockfile entry, then run `npm install`
+- **Tools via config packages**: `prettier`, `eslint`, `markdownlint`, `semantic-release` and the `@semantic-release/*` plugins are not declared here; they are hoisted from the `@ivuorinen/*` config packages
 - **Lockfile auto-detection**: `src/parsers/detect.ts` picks the right parser
 - **Registry fallback**: Tries npm registry first, falls back to local `node_modules`
 - **package.json version**: Read via `createRequire` (ESM workaround for JSON imports)
-
----
-
-## context-mode — MANDATORY routing rules
-
-You have context-mode MCP tools available. These rules are NOT optional — they protect your context window from flooding. A single unrouted command can dump 56 KB into context and waste the entire session.
-
-### BLOCKED commands — do NOT attempt these
-
-#### curl / wget — BLOCKED
-
-Any Bash command containing `curl` or `wget` is intercepted and replaced with an error message. Do NOT retry. Instead use:
-
-- `ctx_fetch_and_index(url, source)` to fetch and index web pages
-- `ctx_execute(language: "javascript", code: "const r = await fetch(...)")` to run HTTP calls in sandbox
-
-#### Inline HTTP — BLOCKED
-
-Any Bash command containing `fetch('http`, `requests.get(`, `requests.post(`, `http.get(`, or `http.request(` is intercepted and replaced with an error message. Do NOT retry with Bash. Instead use:
-
-- `ctx_execute(language, code)` to run HTTP calls in sandbox — only stdout enters context
-
-#### WebFetch — BLOCKED
-
-WebFetch calls are denied entirely. The URL is extracted and you are told to use `ctx_fetch_and_index` instead. Instead use:
-
-- `ctx_fetch_and_index(url, source)` then `ctx_search(queries)` to query the indexed content
-
-### REDIRECTED tools — use sandbox equivalents
-
-#### Bash (>20 lines output)
-
-Bash is ONLY for: `git`, `mkdir`, `rm`, `mv`, `cd`, `ls`, `npm install`, `pip install`, and other short-output commands. For everything else, use:
-
-- `ctx_batch_execute(commands, queries)` — run multiple commands + search in ONE call
-- `ctx_execute(language: "shell", code: "...")` — run in sandbox, only stdout enters context
-
-#### Read (for analysis)
-
-If you are reading a file to **Edit** it → Read is correct (Edit needs content in context). If you are reading to **analyze, explore, or summarize** → use `ctx_execute_file(path, language, code)` instead. Only your printed summary enters context. The raw file content stays in the sandbox.
-
-#### Grep (large results)
-
-Grep results can flood context. Use `ctx_execute(language: "shell", code: "grep ...")` to run searches in sandbox. Only your printed summary enters context.
-
-### Tool selection hierarchy
-
-1. **GATHER**: `ctx_batch_execute(commands, queries)` — Primary tool. Runs all commands, auto-indexes output, returns search results. ONE call replaces 30+ individual calls.
-2. **FOLLOW-UP**: `ctx_search(queries: ["q1", "q2", ...])` — Query indexed content. Pass ALL questions as array in ONE call.
-3. **PROCESSING**: `ctx_execute(language, code)` | `ctx_execute_file(path, language, code)` — Sandbox execution. Only stdout enters context.
-4. **WEB**: `ctx_fetch_and_index(url, source)` then `ctx_search(queries)` — Fetch, chunk, index, query. Raw HTML never enters context.
-5. **INDEX**: `ctx_index(content, source)` — Store content in FTS5 knowledge base for later search.
-
-### Subagent routing
-
-When spawning subagents (Agent/Task tool), the routing block is automatically injected into their prompt. Bash-type subagents are upgraded to general-purpose so they have access to MCP tools. You do NOT need to manually instruct subagents about context-mode.
-
-### Output constraints
-
-- Keep responses under 500 words.
-- Write artifacts (code, configs, PRDs) to FILES — never return them as inline text. Return only: file path + 1-line description.
-- When indexing content, use descriptive source labels so others can `ctx_search(source: "label")` later.
-
-### ctx commands
-
-| Command       | Action                                                                                |
-| ------------- | ------------------------------------------------------------------------------------- |
-| `ctx stats`   | Call the `ctx_stats` MCP tool and display the full output verbatim                    |
-| `ctx doctor`  | Call the `ctx_doctor` MCP tool, run the returned shell command, display as checklist  |
-| `ctx upgrade` | Call the `ctx_upgrade` MCP tool, run the returned shell command, display as checklist |
