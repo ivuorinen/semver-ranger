@@ -1,146 +1,61 @@
-import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
-import { parse as parseYaml } from 'yaml'
-import { parseSyml } from '@yarnpkg/parsers'
-import type { Package, LockfileType, PackageDeps } from '../types.js'
+import { npmInstallSets } from '../parsers/npm.ts'
+import { pnpmInstallSets } from '../parsers/pnpm.ts'
+import type { InstallSets } from '../parsers/reach.ts'
+import { yarnBerryInstallSets } from '../parsers/yarn-berry.ts'
+import { yarnClassicInstallSets } from '../parsers/yarn-classic.ts'
+import type { Package, LockfileType } from '../types.ts'
 
-interface YarnBerryEntry {
-  dependencies?: Record<string, string>
-}
-
-interface NpmLockPackageEntry {
-  dependencies?: Record<string, string>
-}
-
-interface NpmLockDependencyEntry {
-  requires?: Record<string, string>
-}
-
-interface NpmLock {
-  lockfileVersion?: number
-  packages?: Record<string, NpmLockPackageEntry>
-  dependencies?: Record<string, NpmLockDependencyEntry>
-}
-
-interface PnpmLockPackageEntry {
-  dependencies?: Record<string, string>
-}
-
-interface PnpmLock {
-  packages?: Record<string, PnpmLockPackageEntry>
+const INSTALL_SETS: Record<
+  LockfileType,
+  (content: string, projectDir: string, packages: Package[]) => InstallSets
+> = {
+  npm: npmInstallSets,
+  pnpm: pnpmInstallSets,
+  'yarn-classic': yarnClassicInstallSets,
+  'yarn-berry': yarnBerryInstallSets
 }
 
 /**
- * Builds a map from package name to list of direct dependency names.
- * @param {string} content Raw lockfile content.
- * @param {LockfileType} type The lockfile format.
- * @returns {Map<string, string[]>} Map of package name to dependency names.
+ * Tells whether a format's dev filter must wait for registry data.
+ *
+ * Yarn Classic installs a dev dependency that a production package names as a
+ * peer, but yarn.lock records no peers: filtered before the registry pass, such
+ * a package was dropped whenever node_modules was absent. This lived in the CLI,
+ * two layers from the format knowledge that makes it necessary.
+ * @param {LockfileType} lockfileType The lockfile format.
+ * @returns {boolean} True when filterDevPackages belongs after the registry pass.
  */
-export function buildEdgeMap(content: string, type: LockfileType): Map<string, string[]> {
-  const edges = new Map<string, string[]>()
-
-  if (type === 'npm') {
-    const lock = JSON.parse(content) as NpmLock
-
-    if (typeof lock.packages !== 'undefined') {
-      // v2/v3: use packages["node_modules/X"].dependencies
-      for (const [key, entry] of Object.entries(lock.packages)) {
-        if (!key.startsWith('node_modules/')) continue
-        // Nested (non-hoisted) packages are keyed by full path
-        // ("node_modules/a/node_modules/b") — the node name is the last segment.
-        const name = key.split('node_modules/').at(-1)
-        if (typeof name === 'undefined') continue
-        const deps = Object.keys(entry.dependencies ?? {})
-        // The same name can appear hoisted and nested; union rather than clobber.
-        const existing = edges.get(name)
-        edges.set(
-          name,
-          typeof existing === 'undefined' ? deps : [...new Set([...existing, ...deps])]
-        )
-      }
-    } else {
-      // v1: use dependencies["X"].requires
-      for (const [name, entry] of Object.entries(lock.dependencies ?? {})) {
-        edges.set(name, Object.keys(entry.requires ?? {}))
-      }
-    }
-  } else if (type === 'pnpm') {
-    const lock = parseYaml(content) as PnpmLock
-    for (const [key, entry] of Object.entries(lock.packages ?? {})) {
-      const stripped = key.replace(/\([^)]*\)/gu, '').trim()
-      const match =
-        stripped.match(/^\/(@[^/]+\/[^@]+|[^@/][^@]*)@/u) ??
-        stripped.match(/^(@[^/]+\/[^@]+|[^@]+)@/u)
-      /* c8 ignore next */
-      if (match === null) continue
-      const name = match[1]
-      edges.set(name, Object.keys(entry.dependencies ?? {}))
-    }
-  } else if (type === 'yarn-classic') {
-    let currentPkg: string | null = null
-    let inDeps = false
-    const deps: string[] = []
-    for (const line of content.split('\n')) {
-      if (!line.startsWith(' ') && line.match(/^"?[^#]/u) !== null) {
-        if (currentPkg !== null) edges.set(currentPkg, [...deps])
-        const m = line.match(/^"?(@[^/"\s]+\/[^@"\s]+|[^@"\s]+)@/u)
-        currentPkg = m !== null ? m[1] : /* c8 ignore next */ null
-        inDeps = false
-        deps.length = 0
-      } else if (line.trim() === 'dependencies:') {
-        inDeps = true
-      } else if (inDeps && line.match(/^ {4}"?[^" ]/u) !== null) {
-        const m = line.match(/^ {4}"?([^"\s]+)\s/u)
-        if (m !== null) deps.push(m[1])
-        /* c8 ignore next 3 */
-      } else if (inDeps && line.trim() === '') {
-        inDeps = false
-      }
-    }
-    if (currentPkg !== null) edges.set(currentPkg, [...deps])
-  } else if (type === 'yarn-berry') {
-    const parsed = parseSyml(content) as Record<string, YarnBerryEntry>
-    for (const [key, entry] of Object.entries(parsed)) {
-      if (key === '__metadata') continue
-      const match = key.match(/^(.+?)@(?:npm|patch|portal|link|file|git|workspace):/u)
-      if (match === null) continue
-      edges.set(match[1], Object.keys(entry.dependencies ?? {}))
-    }
-  }
-
-  return edges
+export function filtersAfterRegistry(lockfileType: LockfileType): boolean {
+  return lockfileType === 'yarn-classic'
 }
 
 /**
- * BFS from root package names, returning all reachable package names.
- * @param {string[]} roots Starting package names.
- * @param {Map<string, string[]>} edges Adjacency map from buildEdgeMap.
- * @returns {Set<string>} All reachable package names including roots.
+ * Tells whether a format's dev filter reads package.json.
+ *
+ * npm records a `dev` flag per entry and pnpm records each importer's dependency
+ * types, so only the Yarn formats need the manifest. Requiring it for every
+ * format failed `--no-dev` on a lone npm or pnpm lockfile for no reason.
+ * @param {LockfileType} lockfileType The lockfile format.
+ * @returns {boolean} True when filtering without package.json would filter nothing.
  */
-function bfs(roots: string[], edges: Map<string, string[]>): Set<string> {
-  const visited = new Set<string>()
-  const queue = [...roots]
-  let qi = 0
-  while (qi < queue.length) {
-    const name = queue[qi++]
-    if (visited.has(name)) continue
-    visited.add(name)
-    for (const dep of edges.get(name) ?? /* c8 ignore next */ []) {
-      if (!visited.has(dep)) queue.push(dep)
-    }
-  }
-  return visited
+export function filterReadsManifest(lockfileType: LockfileType): boolean {
+  return lockfileType === 'yarn-classic' || lockfileType === 'yarn-berry'
 }
 
 /**
- * Filters packages to exclude those reachable only via devDependencies.
- * Reads package.json from projectDir to identify prod vs dev roots.
- * Falls back to returning all packages if package.json is unreadable.
- * @param {Package[]} packages All packages from lockfile.
- * @param {string} projectDir Directory containing package.json.
+ * Removes the packages this project's package manager would skip in a production
+ * install. Each format decides that its own way, because they disagree.
+ *
+ * Only what a dev install is known to bring in is removed: dropping a package
+ * nothing accounts for would silently widen the reported range.
+ * @param {Package[]} packages All packages from the lockfile.
+ * @param {string} projectDir Directory holding package.json and the lockfile.
  * @param {string} lockfileContent Raw lockfile content.
  * @param {LockfileType} lockfileType The lockfile format.
- * @returns {Package[]} Filtered package list with dev-only packages removed.
+ * @returns {Package[]} The packages without the dev-only ones.
+ * @throws {Error} If the lockfile is malformed, a Yarn workspace member's package.json
+ * is unusable, or Yarn Classic's workspaces field is not a list of patterns: dropping
+ * that member would hide its production dependencies.
  */
 export function filterDevPackages(
   packages: Package[],
@@ -148,25 +63,9 @@ export function filterDevPackages(
   lockfileContent: string,
   lockfileType: LockfileType
 ): Package[] {
-  let pkgJson: PackageDeps
-  try {
-    const raw = readFileSync(join(projectDir, 'package.json'), 'utf8')
-    pkgJson = JSON.parse(raw) as PackageDeps
-  } catch {
-    return packages
-  }
-
-  const prodRoots = Object.keys(pkgJson.dependencies ?? {})
-  const devRoots = Object.keys(pkgJson.devDependencies ?? {})
-
-  const edges = buildEdgeMap(lockfileContent, lockfileType)
-  const productionSet = bfs(prodRoots, edges)
-  const devReachable = bfs(devRoots, edges)
-
-  const devOnlySet = new Set<string>()
-  for (const name of devReachable) {
-    if (!productionSet.has(name)) devOnlySet.add(name)
-  }
-
-  return packages.filter(p => !devOnlySet.has(p.name))
+  const { production, dev } = INSTALL_SETS[lockfileType](lockfileContent, projectDir, packages)
+  return packages.filter(pkg => {
+    const id = `${pkg.name}@${pkg.version}`
+    return production.has(id) || !dev.has(id)
+  })
 }

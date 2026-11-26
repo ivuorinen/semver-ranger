@@ -1,4 +1,22 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["github>ivuorinen/renovate-config"]
+  "extends": ["github>ivuorinen/renovate-config"],
+  "minimumReleaseAge": "7 days",
+  "packageRules": [
+    {
+      "description": [
+        "Hold npm updates for the 7 days .npmrc min-release-age enforces. The shared ",
+        "config's security:minimumReleaseAgeNpm rule sets 3 days for npm and, as a ",
+        "packageRule, beats the top-level value; npm would then reject a 3-day-old ",
+        "version in the lockfile update. @ivuorinen/** keeps the shared config's ",
+        "immediate updates, matching .npmrc's min-release-age-exclude. Only update ",
+        "types with a release timestamp: the preset waives the age for the others, ",
+        "which would otherwise wait forever."
+      ],
+      "matchDatasources": ["npm"],
+      "matchPackageNames": ["!@ivuorinen/**"],
+      "matchUpdateTypes": ["major", "minor", "patch"],
+      "minimumReleaseAge": "7 days"
+    }
+  ]
 }

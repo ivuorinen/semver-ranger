@@ -29,7 +29,7 @@ jobs:
           # Nothing in this job pushes; keep the token out of .git/config.
           persist-credentials: false
 
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: '.nvmrc'
           registry-url: 'https://registry.npmjs.org'
@@ -43,15 +43,23 @@ jobs:
 
       - run: npm run typecheck
 
-      - run: npm test
+      - run: npm run cov
+
+      # Node's coverage merge can drop a never-taken branch once a CLI test's
+      # child process runs the block around it, so the gate above passes.
+      - run: node .github/scripts/coverage-merge-guard.mjs
 
       - run: npm run build
+
+      # `files` in package.json allowlists dist/. This fails when it is widened,
+      # or when the tarball would ship without the CLI.
+      - run: node .github/scripts/pack-check.mjs
 
       # Publish only runs on main, so without this a release-tooling bump
       # merges green and breaks the next release (Publish run 34754580307).
       - run: node .github/scripts/release-notes-smoke.mjs
 
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: dist
           path: dist/

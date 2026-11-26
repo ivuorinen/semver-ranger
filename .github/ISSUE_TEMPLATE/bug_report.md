@@ -1,43 +1,30 @@
 ---
 name: Bug report
-about: Create a report to help us improve
+about: Report a wrong result, a crash or a misleading message
 title: ''
 labels: bug
 assignees: ivuorinen
 ---
 
-**Describe the bug**: A clear and concise description of what the bug is.
+**What happened**: what the command printed or did, and what you expected instead.
 
-The bug is not described.
+**Command**: the exact command line, with every flag.
 
-**To Reproduce**: Steps to reproduce the behavior:
+```sh
+semver-ranger
+```
 
-1. Go to '...'
-2. Click on '....'
-3. Scroll down to '....'
-4. See error
+**Versions**:
 
-**Expected behavior**: A clear and concise description of what you expected to happen.
+- `semver-ranger --version`:
+- `node --version`:
+- Package manager and its version:
+- Lockfile: `package-lock.json` (its `lockfileVersion`), `npm-shrinkwrap.json`, `yarn.lock` (Classic or Berry) or `pnpm-lock.yaml` (its `lockfileVersion`):
 
-No expected behavior described.
+**Output**: the full stderr, and stdout if the result is wrong. A run with `--json` makes a wrong result easiest to show.
 
-**Screenshots**: If applicable, add screenshots to help explain your problem.
+```text
 
-No screenshots provided.
+```
 
-**Desktop (please complete the following information):**
-
-- OS: [e.g. iOS]
-- Browser [e.g. chrome, safari]
-- Version [e.g. 22]
-
-**Smartphone (please complete the following information):**
-
-- Device: [e.g. iPhone6]
-- OS: [e.g. iOS8.1]
-- Browser [e.g. stock browser, safari]
-- Version [e.g. 22]
-
-**Additional context**: Add any other context about the problem here.
-
-No context provided.
+**Lockfile excerpt**: the smallest part of the lockfile, and of `package.json` for `--no-dev` problems, that shows the problem. Remove private package names first.

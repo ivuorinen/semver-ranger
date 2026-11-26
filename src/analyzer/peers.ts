@@ -1,9 +1,7 @@
-import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
-import type { Package, AnalysisTarget, RangeEntry, PackageDeps } from '../types.js'
-import { computeIntersection } from './intersect.js'
+import type { Package, AnalysisTarget, PackageDeps } from '../types.ts'
+import { analyzeTarget } from './intersect.ts'
 
-export const WELL_KNOWN_PEERS = [
+const WELL_KNOWN_PEERS = [
   'typescript',
   'react',
   'react-dom',
@@ -22,82 +20,37 @@ export const WELL_KNOWN_PEERS = [
 
 /**
  * Detects well-known peer dependency targets from the project's package.json.
- * @param {string} projectDir Path to the project root directory.
+ * @param {PackageDeps | null} manifest The project's parsed package.json, if it has one.
  * @param {string[]} extraChecks Additional package names to always include.
  * @returns {string[]} Deduplicated list of peer dependency target names.
  */
-export function detectPeerTargets(projectDir: string, extraChecks: string[]): string[] {
+export function detectPeerTargets(manifest: PackageDeps | null, extraChecks: string[]): string[] {
   const targets = new Set<string>(extraChecks)
-
-  try {
-    const content = readFileSync(join(projectDir, 'package.json'), 'utf8')
-    const pkg = JSON.parse(content) as PackageDeps
-    const allDeps = {
-      ...pkg.dependencies,
-      ...pkg.devDependencies
+  const allDeps = { ...manifest?.dependencies, ...manifest?.devDependencies }
+  for (const name of WELL_KNOWN_PEERS) {
+    if (name in allDeps) {
+      targets.add(name)
     }
-    for (const name of WELL_KNOWN_PEERS) {
-      if (name in allDeps) {
-        targets.add(name)
-      }
-    }
-  } catch {
-    // no package.json or unreadable — return extraChecks only
   }
-
   return Array.from(targets)
 }
 
 /**
  * Analyzes peer dependency constraints across all packages for given targets.
+ * Only a package's own keys count: a target named by --check, such as
+ * constructor, otherwise read an inherited Object member as a declared range.
  * @param {Package[]} packages The full list of resolved packages.
  * @param {string[]} peerTargets Package names to analyze as peer targets.
  * @returns {AnalysisTarget[]} Array of analysis targets with intersection results.
  */
 export function analyzePeers(packages: Package[], peerTargets: string[]): AnalysisTarget[] {
-  const results: AnalysisTarget[] = []
-
-  for (const targetName of peerTargets) {
-    const ranges: RangeEntry[] = []
-    const latestRanges: RangeEntry[] = []
-
-    for (const pkg of packages) {
-      const range = pkg.peerDependencies?.[targetName]
-      if (typeof range !== 'undefined' && range !== '*') {
-        ranges.push({ package: pkg.name, version: pkg.version, range })
-      }
-      const latestRange = pkg.latestPeerDependencies?.[targetName]
-      if (typeof latestRange !== 'undefined' && latestRange !== '*') {
-        latestRanges.push({
-          package: pkg.name,
-          version: pkg.latestVersion ?? pkg.version,
-          range: latestRange
-        })
-      }
-    }
-
-    if (ranges.length === 0 && latestRanges.length === 0) continue
-
-    const { intersection, conflicts, invalid } = computeIntersection(ranges)
-    const {
-      intersection: latestIntersection,
-      conflicts: latestConflicts,
-      invalid: latestInvalid
-    } = computeIntersection(latestRanges)
-
-    results.push({
-      name: targetName,
-      source: 'peerDependencies',
-      ranges,
-      intersection,
-      conflicts,
-      invalidRanges: invalid,
-      latestRanges,
-      latestIntersection,
-      latestConflicts,
-      latestInvalidRanges: latestInvalid
-    })
-  }
-
-  return results
+  return peerTargets.flatMap(
+    target =>
+      analyzeTarget(
+        packages,
+        target,
+        'peerDependencies',
+        declared => Object.getOwnPropertyDescriptor(declared.peerDependencies ?? {}, target)?.value
+      ) ?? []
+  )
 }

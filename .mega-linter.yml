@@ -1,8 +1,14 @@
 # https://megalinter.io/configuration/
 
-APPLY_FIXES: all
+# Report only. The linters run code from the node_modules a PR installed, so
+# the workflow gives MegaLinter no token to push fixes with; run
+# `npm run lint:fix` locally instead.
+APPLY_FIXES: none
 FILEIO_REPORTER: false
-GITHUB_STATUS_REPORTER: true
+# Both post through the GitHub API and need a write-scoped GITHUB_TOKEN, which
+# pr-lint.yml withholds. The job result is the `MegaLinter` check.
+GITHUB_COMMENT_REPORTER: false
+GITHUB_STATUS_REPORTER: false
 IGNORE_GENERATED_FILES: true
 PARALLEL: true
 PRINT_ALPACA: false
@@ -14,10 +20,10 @@ DISABLE_LINTERS:
   - JAVASCRIPT_ES
   - JAVASCRIPT_STANDARD
   # Fights prettier: it rewrites table separators to |---| while prettier
-  # writes | --- |. With APPLY_FIXES it committed its version, which then
-  # failed `prettier --check` in CI — each tool undoing the other on every
-  # run. Prettier already formats markdown tables and owns markdown
-  # formatting here, as it does line width.
+  # writes | --- |, so each fails the other's output. When APPLY_FIXES was on
+  # it committed its version, which then failed `prettier --check` in CI.
+  # Prettier already formats markdown tables and owns markdown formatting
+  # here, as it does line width.
   - MARKDOWN_MARKDOWN_TABLE_FORMATTER
   - REPOSITORY_DEVSKIM
   - REPOSITORY_KINGFISHER
@@ -29,10 +35,9 @@ DISABLE_LINTERS:
 # Skip test fixtures — they intentionally use old package versions for parser tests
 REPOSITORY_TRIVY_ARGUMENTS: --skip-dirs test/fixtures
 
-# osv-scanner has no path-exclusion flag, so the same fixture exemption plus the
-# dev-only advisories with no safe fix live in osv-scanner.toml. Passed
-# explicitly because osv-scanner otherwise looks for config beside each
-# manifest, which would miss the fixtures under test/fixtures.
+# osv-scanner has no path-exclusion flag, so the same fixture exemption lives in
+# osv-scanner.toml. Passed explicitly because osv-scanner otherwise looks for
+# config beside each manifest, which would miss the fixtures under test/fixtures.
 REPOSITORY_OSV_SCANNER_ARGUMENTS: --config=osv-scanner.toml
 
 # Skip files with no registered JSON Schema to avoid false v8r failures

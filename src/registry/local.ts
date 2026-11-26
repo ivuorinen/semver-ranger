@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import type { Package } from '../types.js'
+import type { Package } from '../types.ts'
 
 interface PackageManifest {
   version?: string
@@ -10,7 +10,7 @@ interface PackageManifest {
 
 /**
  * Reads a package manifest from the local node_modules directory.
- * @param {string} name The package name.
+ * @param {string} name The package's installed name.
  * @param {string} projectDir The root project directory.
  * @returns {PackageManifest | null} The manifest or null if not found.
  */
@@ -30,20 +30,22 @@ function readLocalManifest(name: string, projectDir: string): PackageManifest | 
  * node_modules holds a single hoisted copy per package name, while a lockfile
  * may list several versions of that name. The manifest is only applied when its
  * version matches, so a hoisted copy never lends its constraints to a
- * different version of the same package.
+ * different version of the same package. An aliased package is read from the
+ * directory it is installed under, which is the alias and not its real name.
  * @param {Package[]} packages List of packages to resolve.
  * @param {string} projectDir The root project directory.
- * @returns {Promise<Package[]>} Packages enriched with local manifest data.
+ * @returns {Package[]} Packages enriched with local manifest data.
  */
-export async function resolveLocal(packages: Package[], projectDir: string): Promise<Package[]> {
+export function resolveLocal(packages: Package[], projectDir: string): Package[] {
   return packages.map(pkg => {
-    const manifest = readLocalManifest(pkg.name, projectDir)
+    const manifest = readLocalManifest(pkg.alias ?? pkg.name, projectDir)
     if (manifest === null) return pkg
     if (typeof manifest.version === 'string' && manifest.version !== pkg.version) return pkg
     return {
       ...pkg,
       engines: manifest.engines ?? pkg.engines,
-      peerDependencies: manifest.peerDependencies ?? pkg.peerDependencies
+      peerDependencies: manifest.peerDependencies ?? pkg.peerDependencies,
+      hasMetadata: true
     }
   })
 }

@@ -5,7 +5,6 @@ name: Stale
 on:
   schedule:
     - cron: '0 8 * * *'
-  workflow_call:
   workflow_dispatch:
 
 permissions: {}
@@ -18,11 +17,13 @@ jobs:
   stale:
     name: Stale
     runs-on: ubuntu-latest
+    # A hung run otherwise holds an issues/PR write token for the 360-minute default.
+    timeout-minutes: 10
     permissions:
       contents: read # read repository metadata to evaluate staleness
       issues: write # comment on and close stale issues
       pull-requests: write # comment on and close stale pull requests
     steps:
-      - uses: ivuorinen/actions/stale@6a8c40d9c5ff01b901d382b0ef86d432215aae2a # v2026.09.09
+      - uses: ivuorinen/actions/stale@b0f7e9f0b30d76ed33be85f3e7719b834c527583 # v2026.11.05
         with:
           token: ${{ secrets.GITHUB_TOKEN }}

@@ -3,22 +3,24 @@
   "version": "1.0.5",
   "description": "Parses lockfiles to find engine and peer dependency version ranges across your full dependency tree",
   "type": "module",
-  "main": "dist/cli.js",
   "bin": {
     "semver-ranger": "dist/cli.js"
   },
+  "files": [
+    "dist"
+  ],
   "engines": {
     "node": ">=24.0.0"
   },
   "scripts": {
-    "build": "tsup",
-    "dev": "tsup --watch",
+    "build": "rm -rf dist && tsc -p tsconfig.build.json",
+    "dev": "tsc -p tsconfig.build.json --watch",
     "lint": "prettier --check . && eslint . && npm run lint:md",
     "lint:md": "markdownlint --config .markdownlint.json --ignore-path .markdownlintignore '**/*.md' '.github/**/*.md'",
     "lint:fix": "prettier --write . && eslint --fix . && markdownlint --config .markdownlint.json --ignore-path .markdownlintignore --fix '**/*.md' '.github/**/*.md'",
-    "typecheck": "tsc --noEmit",
-    "test": "node --import tsx/esm --test 'test/**/*.test.ts'",
-    "cov": "node --experimental-test-coverage --import tsx/esm --test 'test/**/*.test.ts'"
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.build.json",
+    "test": "node --test 'test/**/*.test.ts'",
+    "cov": "node --experimental-test-coverage --test-coverage-include='src/**' --test-coverage-exclude='src/types.ts' --test-coverage-include-all --test-coverage-lines=100 --test-coverage-branches=100 --test-coverage-functions=100 --test 'test/**/*.test.ts'"
   },
   "repository": {
     "type": "git",
@@ -45,39 +47,29 @@
   },
   "homepage": "https://github.com/ivuorinen/semver-ranger#readme",
   "dependencies": {
-    "@yarnpkg/lockfile": "^1.1.0",
-    "@yarnpkg/parsers": "^3.1.0",
-    "cliui": "^9.0.0",
-    "env-paths": "^4.0.0",
-    "flat-cache": "^6.0.0",
-    "ora": "^9.3.0",
     "semver": "^7.6.3",
     "yaml": "^2.0.0"
   },
   "devDependencies": {
-    "@ivuorinen/commitlint-config": "^2.0.0",
-    "@ivuorinen/eslint-config": "^2.0.0",
-    "@ivuorinen/markdownlint-config": "^2.0.0",
-    "@ivuorinen/prettier-config": "^2.0.5",
-    "@ivuorinen/semantic-release-config": "^2.0.6",
+    "@ivuorinen/eslint-config": "^2",
+    "@ivuorinen/markdownlint-config": "^2",
+    "@ivuorinen/prettier-config": "^2",
+    "@ivuorinen/semantic-release-config": "^3",
     "@types/node": "^24.0.0",
     "@types/semver": "^7.8.0",
-    "@types/yarnpkg__lockfile": "^1.1.0",
-    "tsup": "^8.5.1",
-    "tsx": "^4.23.12",
     "typescript": "^6.0.2",
     "typescript-eslint": "^8.67.0"
   },
   "overrides": {
-    "brace-expansion@5": "^5.0.9",
-    "conventional-changelog-writer": "^9.2.1"
+    "katex@0.16": "^0.19.1",
+    "minimatch@10": "^11.0.5",
+    "npm@11": "npm:ms@2.1.3",
+    "re2js@2.8.6": "2.9.1"
   },
   "allowScripts": {
-    "@ivuorinen/commitlint-config@2.0.2": true,
-    "@ivuorinen/eslint-config@1.5.16": true,
-    "@ivuorinen/markdownlint-config@1.3.12": true,
-    "@ivuorinen/prettier-config@2.0.11": true,
-    "@ivuorinen/semantic-release-config@2.1.0": true,
-    "esbuild@0.27.7": true
+    "@ivuorinen/eslint-config": false,
+    "@ivuorinen/markdownlint-config": false,
+    "@ivuorinen/prettier-config": false,
+    "@ivuorinen/semantic-release-config": false
   }
 }

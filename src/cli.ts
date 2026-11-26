@@ -2,39 +2,93 @@
 
 import { readFileSync, existsSync } from 'node:fs'
 import { resolve, basename, dirname } from 'node:path'
-import { parseArgs } from 'node:util'
+import { inspect, parseArgs } from 'node:util'
 import { createRequire } from 'node:module'
 
-import { detectLockfile, isYarnBerry } from './parsers/detect.js'
-import { parseNpmLockfile } from './parsers/npm.js'
-import { parseYarnClassicLockfile } from './parsers/yarn-classic.js'
-import { parseYarnBerryLockfile } from './parsers/yarn-berry.js'
-import { parsePnpmLockfile } from './parsers/pnpm.js'
-import { resolveLocal } from './registry/local.js'
-import { resolveRegistry } from './registry/client.js'
-import { filterDevPackages } from './graph/index.js'
-import { analyzeEngines } from './analyzer/engines.js'
-import { analyzePeers, detectPeerTargets } from './analyzer/peers.js'
-import { renderOutput } from './output/table.js'
-import { createPhaseSpinner, createBatchProgress } from './output/progress.js'
-import { flushCache } from './cache/index.js'
-import type { Package, ResolvedLockfile, PackageVersion } from './types.js'
+import { detectLockfile, lockfileAt, readProjectManifest } from './parsers/detect.ts'
+import { parseNpmLockfile } from './parsers/npm.ts'
+import { parseYarnClassicLockfile } from './parsers/yarn-classic.ts'
+import { parseYarnBerryLockfile } from './parsers/yarn-berry.ts'
+import { parsePnpmLockfile } from './parsers/pnpm.ts'
+import { resolveLocal } from './registry/local.ts'
+import { resolveRegistry, type Failure } from './registry/client.ts'
+import { filterDevPackages, filterReadsManifest, filtersAfterRegistry } from './graph/index.ts'
+import { analyzeEngines } from './analyzer/engines.ts'
+import { analyzePeers, detectPeerTargets } from './analyzer/peers.ts'
+import { renderOutput } from './output/table.ts'
+import { createPhaseSpinner, createBatchProgress } from './output/progress.ts'
+import { flushCache } from './cache/index.ts'
+import type { DetectedLockfile, Package, PackageVersion } from './types.ts'
 
 const require = createRequire(import.meta.url)
 const pkg = require('../package.json') as PackageVersion
+const MAX_NAMED_FAILURES = 5
 
-const { values, positionals } = parseArgs({
-  allowPositionals: true,
-  options: {
-    offline: { type: 'boolean', default: false },
-    check: { type: 'string', multiple: true, default: [] },
-    'no-dev': { type: 'boolean', default: false },
-    all: { type: 'boolean', default: false },
-    json: { type: 'boolean', default: false },
-    version: { type: 'boolean', default: false },
-    help: { type: 'boolean', default: false }
+/**
+ * Writes a message to stderr without its control characters, newlines aside.
+ *
+ * Messages carry lockfile names, parser excerpts and paths. The table already
+ * strips such text, but stderr printed it raw, so an escape sequence in a
+ * lockfile could clear the screen, rewrite earlier output or set the clipboard.
+ * @param {string} message The message.
+ * @returns {void}
+ */
+function report(message: string): void {
+  console.error(message.replace(/[^\P{Cc}\n]/gu, ''))
+}
+
+/**
+ * Flattens lockfile or package.json text that a single-line message embeds.
+ *
+ * report() keeps newlines because parser errors and stack traces span lines, so
+ * a newline inside a package name started a stderr line of the lockfile's
+ * choosing, such as a counterfeit "all lookups resolved". report() still strips
+ * every other control character.
+ * @param {string} text Untrusted text.
+ * @returns {string} The text with each newline as a space.
+ */
+function oneLine(text: string): string {
+  return text.replaceAll('\n', ' ')
+}
+
+/**
+ * Names a package or lookup by its resolved identity.
+ * @param {{name: string, version: string}} entry A package or failure.
+ * @param {string} entry.name The registry name.
+ * @param {string} entry.version The version, or `latest` for a latest-release lookup.
+ * @returns {string} `name@version`.
+ */
+function idOf(entry: { name: string; version: string }): string {
+  return `${entry.name}@${entry.version}`
+}
+
+/**
+ * Parses the command line, turning a usage mistake into a one-line error.
+ * parseArgs throws on an unknown flag, which otherwise surfaced as a stack trace.
+ * @returns {ReturnType<typeof parseArgs>} The parsed values and positionals.
+ */
+function parseCliArgs() {
+  try {
+    return parseArgs({
+      allowPositionals: true,
+      options: {
+        offline: { type: 'boolean', default: false },
+        check: { type: 'string', multiple: true, default: [] },
+        'no-dev': { type: 'boolean', default: false },
+        all: { type: 'boolean', default: false },
+        json: { type: 'boolean', default: false },
+        version: { type: 'boolean', default: false },
+        help: { type: 'boolean', default: false }
+      }
+    })
+  } catch (err: unknown) {
+    report(`Error: ${(err as Error).message}`)
+    report('Run semver-ranger --help for usage.')
+    return process.exit(1)
   }
-})
+}
+
+const { values, positionals } = parseCliArgs()
 
 if (values.version === true) {
   console.log(pkg.version)
@@ -47,51 +101,47 @@ if (values.help === true) {
 Usage: semver-ranger [lockfile-path] [options]
 
 Options:
-  --offline       Skip registry; use node_modules + cache only
+  --offline       Skip registry; use lockfile, node_modules and cache only
   --check <pkg>   Add a package to peer dep analysis (repeatable)
-  --no-dev        Exclude devDependencies from analysis
-  --all           Show all packages including those with no constraints
+  --no-dev        Analyze only what a production install includes
+  --all           Show packages with no constraints too (table output only)
   --json          Output raw JSON instead of tables
   --version       Print version and exit
   --help          Print usage and exit
 
-Exit codes: 0 success, 1 unrecoverable error
+Exit codes: 0 success (conflicts included), 1 unrecoverable error,
+130 interrupted, 143 terminated
 `)
   process.exit(0)
 }
 
 /**
  * Resolves the lockfile path, type, and package manager from a positional arg or auto-detection.
+ * The file name is mapped by lockfileAt, which auto-detection uses too: with a
+ * mapping of its own here, an explicit path and auto-detection could disagree.
  * @param {string} cwd Current working directory to search for lockfiles.
  * @param {string} [positional] Optional explicit lockfile path from CLI positional argument.
- * @returns {Object} Resolved lockfile info with path, type, and manager.
+ * @returns {DetectedLockfile} Resolved lockfile info with path, type, and manager.
  * @throws {Error} If the lockfile is not found, unrecognized, or no lockfile exists in cwd.
  */
-function resolveLockfile(cwd: string, positional?: string): ResolvedLockfile {
+function resolveLockfile(cwd: string, positional?: string): DetectedLockfile {
   if (typeof positional === 'string') {
-    const lockfilePath = resolve(cwd, positional)
-    if (!existsSync(lockfilePath)) {
-      throw new Error(`lockfile not found: ${lockfilePath}`)
+    const path = resolve(cwd, positional)
+    if (!existsSync(path)) {
+      throw new Error(`lockfile not found: ${path}`)
     }
-    const base = basename(lockfilePath)
-    if (base === 'package-lock.json') {
-      return { lockfilePath, lockfileType: 'npm', manager: 'npm' }
+    const detected = lockfileAt(path)
+    if (detected === null) {
+      throw new Error(`unrecognized lockfile: ${basename(path)}`)
     }
-    if (base === 'pnpm-lock.yaml') {
-      return { lockfilePath, lockfileType: 'pnpm', manager: 'pnpm' }
-    }
-    if (base === 'yarn.lock') {
-      const berry = isYarnBerry(lockfilePath)
-      return { lockfilePath, lockfileType: berry ? 'yarn-berry' : 'yarn-classic', manager: 'yarn' }
-    }
-    throw new Error(`unrecognized lockfile: ${base}`)
+    return detected
   }
 
   const detected = detectLockfile(cwd)
   if (detected === null) {
     throw new Error('no lockfile found in current directory')
   }
-  return { lockfilePath: detected.path, lockfileType: detected.type, manager: detected.manager }
+  return detected
 }
 
 // Node honours these only when started with --use-env-proxy (or
@@ -121,7 +171,7 @@ function warnIfProxyIgnored(): void {
     nodeOptions.includes('--use-env-proxy')
   if (honoured) return
 
-  console.error(
+  report(
     'Warning: a proxy is configured in the environment but Node is not using it. ' +
       'Re-run with NODE_USE_ENV_PROXY=1 to route registry requests through it, ' +
       'or pass --offline.'
@@ -135,17 +185,77 @@ function warnIfProxyIgnored(): void {
  */
 function warnOnFlushFailure(failure: Error | null): void {
   if (failure !== null) {
-    console.error(`Warning: could not persist the registry cache: ${failure.message}`)
+    report(`Warning: could not persist the registry cache: ${failure.message}`)
   }
+}
+
+/**
+ * Warns that constraints are missing, naming the first few so the user can act on it.
+ * @param {string} summary What went unresolved, with its count.
+ * @param {Failure[]} failures The lookups whose constraints are unknown.
+ * @returns {void}
+ */
+function warnUnresolved(summary: string, failures: Failure[]): void {
+  if (failures.length === 0) return
+  const named = failures
+    .slice(0, MAX_NAMED_FAILURES)
+    .map(failure => oneLine(`${idOf(failure)} (${failure.reason})`))
+    .join(', ')
+  const more = failures.length - MAX_NAMED_FAILURES
+  report(`Warning: ${summary}; the reported ranges may be too permissive.`)
+  report(`  ${named}${more > 0 ? `, and ${more} more` : ''}`)
+}
+
+/**
+ * Tells a bug from a failure the user can act on.
+ *
+ * The CLI's own failures are plain Errors, and a lockfile that cannot be read or
+ * parsed arrives wrapped in one that names it. A TypeError, RangeError or
+ * ReferenceError, thrown or wrapped, means malformed input reached code that
+ * does not guard against it; printing only its message left a bug report with
+ * no file or line to go on.
+ * @param {Error} err The failure that ended the run.
+ * @returns {boolean} True when the stack is needed to locate the failure.
+ */
+function isBug(err: Error): boolean {
+  const root = err.cause instanceof Error ? err.cause : err
+  return root instanceof TypeError || root instanceof RangeError || root instanceof ReferenceError
+}
+
+/**
+ * Saves the cache and exits when the run is interrupted.
+ *
+ * The stores reach disk only when a run ends, so Ctrl-C, or a CI job cancelled
+ * at its timeout, threw away every registry response fetched so far, and version
+ * manifests never expire, so each would have saved a request on every later run.
+ * @param {NodeJS.Signals} signal The signal to handle.
+ * @param {number} code The exit code, 128 plus the signal number by convention.
+ * @returns {void}
+ */
+function flushOnSignal(signal: NodeJS.Signals, code: number): void {
+  process.once(signal, () => {
+    warnOnFlushFailure(flushCache())
+    process.exit(code)
+  })
 }
 
 /**
  * Main CLI entry point: detects lockfile, resolves packages,
  * analyzes constraints, and renders output.
+ *
+ * A lockfile that cannot be read or parsed fails with its path in the message:
+ * the spinner that named it is silent off a terminal, and a JSON parser's
+ * position alone left CI logs guessing which file was broken.
  * @returns {Promise<void>} Resolves when analysis and output are complete.
  */
 async function main(): Promise<void> {
-  const { lockfilePath, lockfileType, manager } = resolveLockfile(process.cwd(), positionals[0])
+  flushOnSignal('SIGINT', 130)
+  flushOnSignal('SIGTERM', 143)
+  const {
+    path: lockfilePath,
+    type: lockfileType,
+    manager
+  } = resolveLockfile(process.cwd(), positionals[0])
 
   const projectDir = dirname(lockfilePath)
   const lockfileBase = basename(lockfilePath)
@@ -165,27 +275,36 @@ async function main(): Promise<void> {
     }
   } catch (err: unknown) {
     parseSpinner.fail(`Parsing ${lockfileBase}`)
-    throw err
+    throw new Error(`could not read ${lockfilePath}: ${(err as Error).message}`, { cause: err })
   }
   parseSpinner.succeed(`Parsed ${lockfileBase} (${packages.length} packages)`)
 
   // Pass 1: local node_modules
   const localSpinner = createPhaseSpinner('Reading local packages')
-  try {
-    packages = await resolveLocal(packages, projectDir)
-  } catch (err: unknown) {
-    localSpinner.fail('Reading local packages')
-    throw err
-  }
+  packages = resolveLocal(packages, projectDir)
   localSpinner.succeed('Reading local packages')
 
-  // Pass 1.5: filter dev-only packages if --no-dev
-  if (values['no-dev'] === true) {
+  const manifest = readProjectManifest(projectDir)
+
+  // Pass 1.5: filter dev-only packages if --no-dev. For a format whose filter
+  // reads package.json, carrying on without it would label an unfiltered result
+  // as production-only.
+  const filterAfterRegistry = filtersAfterRegistry(lockfileType)
+  if (values['no-dev'] === true && manifest.deps === null && filterReadsManifest(lockfileType)) {
+    const reason = manifest.error === null ? '' : `: ${oneLine(manifest.error)}`
+    throw new Error(`--no-dev needs a readable package.json in ${projectDir}${reason}`)
+  }
+  if (manifest.error !== null) {
+    report(`Warning: skipping peer detection, package.json is unusable: ${oneLine(manifest.error)}`)
+  }
+  if (values['no-dev'] === true && !filterAfterRegistry) {
     packages = filterDevPackages(packages, projectDir, content, lockfileType)
   }
 
   // Pass 2: registry (skipped if --offline)
-  let failedLookups = 0
+  let failures: Failure[]
+  let skipped: Package[] = []
+  let latestUncached: Package[] = []
   if (values.offline !== true) {
     warnIfProxyIgnored()
     const progress = createBatchProgress('Fetching registry data', packages.length)
@@ -193,6 +312,7 @@ async function main(): Promise<void> {
     try {
       const resolved = await resolveRegistry(packages, {
         offline: false,
+        projectDir,
         onProgress(completed, total, cached) {
           lastProgressText = `Fetching registry data... ${completed}/${total}${
             cached > 0 ? ` (${cached} cached)` : ''
@@ -201,7 +321,8 @@ async function main(): Promise<void> {
         }
       })
       packages = resolved.packages
-      failedLookups = resolved.failed
+      failures = resolved.failures
+      skipped = resolved.skipped
       progress.succeed(
         lastProgressText || `Fetching registry data... ${packages.length}/${packages.length}`
       )
@@ -210,42 +331,73 @@ async function main(): Promise<void> {
       throw err
     }
   } else {
-    const resolved = await resolveRegistry(packages, { offline: true })
+    const resolved = await resolveRegistry(packages, { offline: true, projectDir })
     packages = resolved.packages
+    failures = resolved.failures
+    latestUncached = resolved.latestUncached
+  }
+
+  if (values['no-dev'] === true && filterAfterRegistry) {
+    packages = filterDevPackages(packages, projectDir, content, lockfileType)
+    // The registry pass also saw the dev packages just removed. Reporting their
+    // lookups said the ranges might be too permissive because of packages the
+    // analysis no longer includes.
+    const kept = new Set(packages.map(idOf))
+    const names = new Set(packages.map(({ name }) => name))
+    failures = failures.filter(failure =>
+      failure.version === 'latest' ? names.has(failure.name) : kept.has(idOf(failure))
+    )
+    skipped = skipped.filter(entry => kept.has(idOf(entry)))
+    latestUncached = latestUncached.filter(entry => kept.has(idOf(entry)))
   }
 
   // A dropped constraint can only widen the intersection, so unresolved
   // lookups make the reported range too permissive — never say so silently.
-  if (failedLookups > 0) {
-    console.error(
-      `Warning: ${failedLookups} registry lookup(s) failed; ` +
-        'the reported ranges may be too permissive.'
+  warnUnresolved(
+    values.offline === true
+      ? `${failures.length} package(s) have no metadata offline`
+      : `${failures.length} registry lookup(s) failed`,
+    failures
+  )
+  if (skipped.length > 0) {
+    report(
+      `Warning: the registry stopped responding, so ${skipped.length} package(s) were not ` +
+        'looked up. Re-run when it is reachable, or pass --offline.'
+    )
+  }
+  // Offline, latest entries a day old have expired; the latest ranges then
+  // looked complete, or said "no constraints found", when they were unknown.
+  if (latestUncached.length > 0) {
+    report(
+      `Warning: latest data is not cached for ${latestUncached.length} package(s); ` +
+        'the latest ranges are partial.'
     )
   }
 
   // Analyze
   const engineTargets = analyzeEngines(packages, manager)
-  const peerTargetNames = detectPeerTargets(projectDir, values.check ?? [])
+  const peerTargetNames = detectPeerTargets(manifest.deps, values.check)
   const peerTargets = analyzePeers(packages, peerTargetNames)
   const allTargets = [...engineTargets, ...peerTargets]
 
   if (allTargets.length === 0 && packages.length > 0) {
-    console.error(
-      'Warning: no engine or peer constraints resolved. npm lockfileVersion 1 carries no ' +
-        'metadata — run without --offline, or install node_modules.'
-    )
+    const hint = values.offline === true ? ' Run without --offline, or install node_modules.' : ''
+    report(`Warning: no engine or peer constraints were resolved.${hint}`)
   }
 
-  // Render
-  const output = renderOutput(
-    allTargets,
-    packages.length,
-    packages,
-    basename(lockfilePath),
-    manager,
-    values.all,
-    values.json
-  )
+  // Render. JSON carries every sign of an incomplete analysis as well: on stderr
+  // alone, a script read one whose every lookup failed, or whose latest data had
+  // expired offline, as a clean result.
+  const analysis = {
+    targets: allTargets,
+    unresolved: failures,
+    skipped: skipped.length,
+    latestUncached: latestUncached.length
+  }
+  const output =
+    values.json === true
+      ? JSON.stringify(analysis, null, 2)
+      : renderOutput(allTargets, packages, lockfileBase, manager, values.all)
 
   console.log(output)
   warnOnFlushFailure(flushCache())
@@ -254,7 +406,8 @@ async function main(): Promise<void> {
 main().catch((err: unknown) => {
   // Report the original failure first: a cache write problem must never
   // replace the error the user actually needs to see.
-  console.error('Error:', err instanceof Error ? err.message : String(err))
+  const error = err as Error
+  report(isBug(error) ? inspect(error) : `Error: ${error.message}`)
   // Keep whatever was fetched before the failure.
   warnOnFlushFailure(flushCache())
   process.exit(1)

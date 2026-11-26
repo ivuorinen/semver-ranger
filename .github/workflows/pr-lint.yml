@@ -4,14 +4,8 @@ name: PR Lint
 on:
   pull_request:
     branches: [main]
-  workflow_call: {}
 
 permissions: {}
-
-env:
-  # Workflow-level fix behaviour (linter config lives in .mega-linter.yml)
-  APPLY_FIXES_EVENT: all
-  APPLY_FIXES_MODE: commit
 
 concurrency:
   group: ${{ github.ref }}-${{ github.workflow }}
@@ -21,31 +15,26 @@ jobs:
   megalinter:
     name: MegaLinter
     runs-on: ubuntu-latest
+    timeout-minutes: 30
 
+    # Read-only: the linters run code from the node_modules this PR installed,
+    # so nothing in this job may hold a token that can push, comment or post
+    # statuses. MegaLinter only reports (APPLY_FIXES: none in .mega-linter.yml)
+    # and the job result is the check.
     permissions:
-      contents: write # git-auto-commit-action pushes the applied linter fixes
-      issues: write # MegaLinter reporters may comment on the linked issue
+      contents: read
       packages: read # pull the MegaLinter image from ghcr.io
-      pull-requests: write # create-pull-request opens the fixes PR
-      security-events: write # SARIF_REPORTER uploads results to code scanning
-      # GITHUB_STATUS_REPORTER posts one commit status per linter. A job-level
-      # block replaces the workflow-level one rather than merging, so omitting
-      # this returned 403 on every post and failed the job regardless of lint
-      # results.
-      statuses: write # GITHUB_STATUS_REPORTER posts a status per linter
 
     steps:
       - name: Checkout Code
-        # zizmor: ignore[artipacked]
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          token: ${{ secrets.PAT || secrets.GITHUB_TOKEN }}
-          # NOTE: credentials stay persisted in .git/config because
-          # git-auto-commit-action below pushes with them and takes no token
-          # input. The install step is therefore run with --ignore-scripts so
-          # PR-authored lifecycle scripts cannot read them.
-          # If you use VALIDATE_ALL_CODEBASE = true,
-          # you can remove this line to improve performances
+          # No credential in .git/config: Prettier imports code from the
+          # node_modules this PR installed, which --ignore-scripts does not
+          # stop, and nothing in this job pushes.
+          persist-credentials: false
+          # Full history: with VALIDATE_ALL_CODEBASE false, MegaLinter diffs
+          # against the base branch.
           fetch-depth: 0
 
       # Without this the install runs on whatever Node the runner ships rather
@@ -53,7 +42,7 @@ jobs:
       # lockfile differently — that mismatch failed `npm ci` here while the
       # identical command passed in ci.yml.
       - name: Set up Node
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: '.nvmrc'
 
@@ -62,75 +51,22 @@ jobs:
         # linting needs no lifecycle scripts.
         run: npm ci --ignore-scripts
 
-      # MegaLinter
       - name: MegaLinter
-        id: ml
-        # You can override MegaLinter flavor used to have faster performances
-        # More info at https://megalinter.io/flavors/
-        uses: oxsecurity/megalinter@9949bad031045f366be2467e00e8371a7328a2e2 # v10.1.0
+        uses: oxsecurity/megalinter@f2fe8c1cba37091848df3e524066c8c23ef353ed # v10.2.0
         env:
-          # All available variables are described in documentation
-          # https://megalinter.io/configuration/
+          # Lints only the files a pull request changes. This workflow runs on
+          # pull_request alone, so an expression switching to the whole
+          # codebase on a push to main could never be true.
+          VALIDATE_ALL_CODEBASE: false
+          # No GITHUB_TOKEN: this container runs PR-installed code. The GitHub
+          # status and comment reporters that need one are off in
+          # .mega-linter.yml.
 
-          # Validates all source when push on main, else just the git
-          # diff with main. Override with true if you always want to
-          # lint all sources
-          VALIDATE_ALL_CODEBASE: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      # Upload MegaLinter artifacts
-      - name: Archive production artifacts
+      - name: Upload MegaLinter reports
         if: success() || failure()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: MegaLinter reports
           path: |
             megalinter-reports
             mega-linter.log
-
-      # Create pull request if applicable (for now works only on PR from
-      # same repository, not from forks)
-      - name: Create Pull Request with applied fixes
-        id: cpr
-        if: steps.ml.outputs.has_updated_sources == 1 && (env.APPLY_FIXES_EVENT == 'all' || env.APPLY_FIXES_EVENT == github.event_name) && env.APPLY_FIXES_MODE == 'pull_request' && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository) && !contains(github.event.head_commit.message, 'skip fix')
-        # zizmor: ignore[superfluous-actions]
-        # `gh pr create` is not equivalent: this action also creates/updates
-        # the branch, detects whether anything changed, and reuses an existing
-        # PR instead of failing. Note this step is currently unreachable —
-        # APPLY_FIXES_MODE is pinned to 'commit' above.
-        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
-        with:
-          token: ${{ secrets.PAT || secrets.GITHUB_TOKEN }}
-          commit-message: '[MegaLinter] Apply linters automatic fixes'
-          title: '[MegaLinter] Apply linters automatic fixes'
-          labels: bot
-
-      - name: Create PR output
-        if: steps.ml.outputs.has_updated_sources == 1 && (env.APPLY_FIXES_EVENT == 'all' || env.APPLY_FIXES_EVENT == github.event_name) && env.APPLY_FIXES_MODE == 'pull_request' && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository) && !contains(github.event.head_commit.message, 'skip fix')
-        env:
-          # Passed as env rather than interpolated into the script, so the
-          # values cannot be expanded as shell code.
-          PR_NUMBER: ${{ steps.cpr.outputs.pull-request-number }}
-          PR_URL: ${{ steps.cpr.outputs.pull-request-url }}
-        run: |
-          echo "Pull Request Number - $PR_NUMBER"
-          echo "Pull Request URL - $PR_URL"
-
-      # Push new commit if applicable (for now works only on PR from same
-      # repository, not from forks)
-      - name: Prepare commit
-        if: steps.ml.outputs.has_updated_sources == 1 && (env.APPLY_FIXES_EVENT == 'all' || env.APPLY_FIXES_EVENT == github.event_name) && env.APPLY_FIXES_MODE == 'commit' && github.ref != 'refs/heads/main' && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository) && !contains(github.event.head_commit.message, 'skip fix')
-        run: sudo chown -Rc $UID .git/
-
-      - name: Commit and push applied linter fixes
-        if: steps.ml.outputs.has_updated_sources == 1 && (env.APPLY_FIXES_EVENT == 'all' || env.APPLY_FIXES_EVENT == github.event_name) && env.APPLY_FIXES_MODE == 'commit' && github.ref != 'refs/heads/main' && (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository) && !contains(github.event.head_commit.message, 'skip fix')
-        # zizmor: ignore[superfluous-actions]
-        # Hand-rolled add/commit/push would have to re-implement change
-        # detection, committer identity, and resolving the target branch across
-        # pull_request and push events. Not worth the regression risk here.
-        uses: stefanzweifel/git-auto-commit-action@4a55954c782fc1ea30b9056cd3e7a2b40ca8887d # v7.2.0
-        with:
-          branch: ${{ github.event.pull_request.head.ref || github.head_ref || github.ref }}
-          commit_message: '[MegaLinter] Apply linters fixes'
-          commit_user_name: ivuorinen
-          commit_user_email: 11024+ivuorinen@users.noreply.github.com

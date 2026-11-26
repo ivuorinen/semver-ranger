@@ -1,7 +1,7 @@
-import cliui from 'cliui'
-import type { AnalysisTarget, Package, RangeEntry } from '../types.js'
+import type { AnalysisTarget, Package, RangeEntry } from '../types.ts'
 
-const WIDTH = typeof process.stdout.columns !== 'undefined' ? process.stdout.columns : 80
+// A pseudo-terminal allocated without a size reports 0 columns, not undefined.
+const WIDTH = process.stdout.columns || 80
 const SEP = '─'.repeat(WIDTH)
 
 const COL_PKG = 28
@@ -9,17 +9,103 @@ const COL_VER = 12
 const COL_LATEST = 12
 const COL_RANGE = Math.max(WIDTH - COL_PKG - COL_VER - COL_LATEST - 6, 20)
 
-/**
- * Creates a new cliui instance sized to the current terminal width.
- * @returns {ReturnType<typeof cliui>} A cliui instance.
- */
-function makeUi(): ReturnType<typeof cliui> {
-  return cliui({ width: WIDTH })
+interface Column {
+  text: string
+  width: number
 }
 
 /**
- * Renders a single package row into a cliui layout.
- * @param {ReturnType<typeof makeUi>} ui The cliui instance to write into.
+ * Word-wraps text, hard-breaking any word too long to fit a line of its own.
+ * Measures with String.length: names, versions and ranges are ASCII, and the only
+ * symbols this file adds (⚠ — ─) occupy one UTF-16 unit each.
+ *
+ * Control characters are removed first. This text comes from lockfiles and
+ * registry manifests, and an escape sequence in a range could rewrite earlier
+ * output, hiding a conflict, or drive the terminal.
+ * @param {string} text The text to wrap; surrounding spaces add nothing to a line.
+ * @param {number} width Maximum line length.
+ * @returns {string[]} The wrapped lines; at least one.
+ */
+function wrap(text: string, width: number): string[] {
+  const lines: string[] = []
+  let line = ''
+  for (const word of text.replace(/\p{Cc}/gu, '').split(' ')) {
+    if (line !== '') line += ' '
+    if (word.length > width) {
+      for (const char of word) {
+        if (line.length >= width) {
+          lines.push(line.trimEnd())
+          line = ''
+        }
+        line += char
+      }
+    } else if (word !== '' && line.length + word.length > width) {
+      lines.push(line.trimEnd())
+      line = word
+    } else {
+      line += word
+    }
+  }
+  lines.push(line.trimEnd())
+  return lines
+}
+
+/**
+ * Word-wraps text, repeating its leading spaces on every line.
+ * @param {string} text The text to wrap.
+ * @param {number} width Maximum line length, indent included.
+ * @returns {string[]} The wrapped lines; at least one.
+ */
+function wrapIndented(text: string, width: number): string[] {
+  const indent = text.length - text.trimStart().length
+  return wrap(text, width - indent).map(line => ' '.repeat(indent) + line)
+}
+
+/**
+ * Creates a line buffer that lays text out to the current terminal width.
+ * @returns {{div: Function, toString: Function}} The buffer's writer and renderer.
+ */
+function makeUi(): {
+  div: (...columns: [string] | Column[]) => void
+  toString: () => string
+} {
+  const lines: string[] = []
+  return {
+    /**
+     * Appends one row: either a single string, or columns that wrap independently
+     * within their own widths.
+     *
+     * Every column but the last wraps one short of its width. Filled to the
+     * edge, a long name ran straight into the version beside it and read as a
+     * different name or version.
+     * @param {[string] | Column[]} columns A single string, or the row's columns.
+     * @returns {void}
+     */
+    div(...columns: [string] | Column[]): void {
+      const [first] = columns
+      if (typeof first === 'string') {
+        lines.push(...wrapIndented(first, WIDTH))
+        return
+      }
+      const row = columns as Column[]
+      const cells = row.map((column, position) =>
+        wrapIndented(column.text, position < row.length - 1 ? column.width - 1 : column.width)
+      )
+      const height = Math.max(...cells.map(cell => cell.length))
+      for (let index = 0; index < height; index += 1) {
+        const parts = row.map((column, position) =>
+          (cells[position]?.[index] ?? '').padEnd(column.width)
+        )
+        lines.push(parts.join('').trimEnd())
+      }
+    },
+    toString: () => lines.join('\n')
+  }
+}
+
+/**
+ * Renders a single package row into a layout.
+ * @param {ReturnType<typeof makeUi>} ui The layout to write into.
  * @param {RangeEntry} entry The range entry to render.
  * @param {string} latestVersion Latest known version string for the package.
  * @param {string} prefix Optional prefix prepended to the package name column.
@@ -34,7 +120,7 @@ function renderPackageRow(
   ui.div(
     { text: prefix + entry.package, width: COL_PKG },
     { text: entry.version, width: COL_VER },
-    { text: latestVersion !== '' ? latestVersion : '—', width: COL_LATEST },
+    { text: latestVersion, width: COL_LATEST },
     { text: entry.range, width: COL_RANGE }
   )
 }
@@ -65,6 +151,13 @@ function safeRangeText(
 
 /**
  * Renders a single analysis target section as a formatted string.
+ *
+ * A row's Latest column falls back to the package's own latest version: the
+ * latest ranges hold only releases that still declare the constraint, so the
+ * upgrade that drops it showed as unknown. --all matches by name and version,
+ * since matching by name hid an unconstrained copy of a constrained package.
+ * Packages are looked up through one map: a scan of the whole list per row made
+ * rendering quadratic, nearly a second per target at 20,000 packages.
  * @param {AnalysisTarget} target The analysis target to render.
  * @param {Package[]} allPackages All packages in the lockfile.
  * @param {boolean} showAll Whether to include packages with no constraint declaration.
@@ -75,7 +168,7 @@ function renderTarget(target: AnalysisTarget, allPackages: Package[], showAll: b
   const totalDeclaring = target.ranges.length
 
   ui.div(`  ${target.name} (${target.source})   ${totalDeclaring} package(s) declare a constraint`)
-  ui.div(`  ${'─'.repeat(WIDTH - 4)}`)
+  ui.div(`  ${'─'.repeat(Math.max(WIDTH - 4, 0))}`)
 
   const labelInstalled = `  Safe ${target.name} range (installed):`
   const labelLatest = `  Safe ${target.name} range (latest):`
@@ -107,7 +200,7 @@ function renderTarget(target: AnalysisTarget, allPackages: Package[], showAll: b
 
   if (target.ranges.length > 0) {
     ui.div('')
-    ui.div('  Most restrictive (installed):')
+    ui.div('  Declared constraints (installed):')
     ui.div(
       { text: '  Package', width: COL_PKG },
       { text: 'Installed', width: COL_VER },
@@ -115,9 +208,11 @@ function renderTarget(target: AnalysisTarget, allPackages: Package[], showAll: b
       { text: 'Range', width: COL_RANGE }
     )
     const latestByPkg = new Map(target.latestRanges.map(r => [r.package, r]))
+    const byId = new Map(allPackages.map(p => [`${p.name}@${p.version}`, p]))
     for (const entry of target.ranges) {
-      const latest = latestByPkg.get(entry.package)
-      renderPackageRow(ui, entry, latest?.version ?? '—')
+      const own = byId.get(`${entry.package}@${entry.version}`)
+      const latest = latestByPkg.get(entry.package)?.version ?? own?.latest?.version
+      renderPackageRow(ui, entry, latest ?? '—')
     }
   }
 
@@ -156,8 +251,8 @@ function renderTarget(target: AnalysisTarget, allPackages: Package[], showAll: b
   }
 
   if (showAll) {
-    const constrainedNames = new Set(target.ranges.map(r => r.package))
-    const unconstrained = allPackages.filter(p => !constrainedNames.has(p.name))
+    const constrained = new Set(target.ranges.map(r => `${r.package}@${r.version}`))
+    const unconstrained = allPackages.filter(p => !constrained.has(`${p.name}@${p.version}`))
     if (unconstrained.length > 0) {
       ui.div('')
       ui.div('  All packages (no constraint declared):')
@@ -171,7 +266,7 @@ function renderTarget(target: AnalysisTarget, allPackages: Package[], showAll: b
         ui.div(
           { text: `  ${pkg.name}`, width: COL_PKG },
           { text: pkg.version, width: COL_VER },
-          { text: pkg.latestVersion ?? '—', width: COL_LATEST },
+          { text: pkg.latest?.version ?? '—', width: COL_LATEST },
           { text: '—', width: COL_RANGE }
         )
       }
@@ -182,32 +277,25 @@ function renderTarget(target: AnalysisTarget, allPackages: Package[], showAll: b
 }
 
 /**
- * Renders the full analysis output as a formatted cliui table or JSON string.
+ * Renders the full analysis output as formatted tables.
+ * JSON is built by the CLI, which holds the unresolved lookups it must carry.
  * @param {AnalysisTarget[]} targets Analysis targets to include in the output.
- * @param {number} totalPackages Total number of packages analyzed.
- * @param {Package[]} packages Full package list for --all rendering.
+ * @param {Package[]} packages Full package list for the count and --all rendering.
  * @param {string} lockfileName Filename of the detected lockfile.
  * @param {string} manager Package manager name (npm, yarn, pnpm).
  * @param {boolean} showAll Whether to include packages with no constraint declaration.
- * @param {boolean} json When true, returns a raw JSON string instead of a table.
  * @returns {string} The formatted output string.
  */
 export function renderOutput(
   targets: AnalysisTarget[],
-  totalPackages: number,
   packages: Package[],
   lockfileName: string,
   manager: string,
-  showAll: boolean,
-  json: boolean
+  showAll: boolean
 ): string {
-  if (json) {
-    return JSON.stringify(targets, null, 2)
-  }
-
   const ui = makeUi()
 
-  ui.div(`semver-ranger — analyzing ${totalPackages} packages`)
+  ui.div(`semver-ranger — analyzing ${packages.length} packages`)
   ui.div('')
   ui.div({ text: '  Lockfile:', width: 14 }, { text: `${lockfileName} (${manager})`, width: 60 })
   ui.div(
