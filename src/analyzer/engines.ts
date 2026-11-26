@@ -1,39 +1,5 @@
-import type { Package, AnalysisTarget, RangeEntry, ManagerType } from '../types.js'
-import { computeIntersection } from './intersect.js'
-
-/**
- * Collects engine range entries for a given key from installed package versions.
- * @param {Package[]} packages List of packages to inspect.
- * @param {string} key The engine key (e.g. "node").
- * @returns {RangeEntry[]} Array of range entries for the key.
- */
-function collectRanges(packages: Package[], key: string): RangeEntry[] {
-  const ranges: RangeEntry[] = []
-  for (const pkg of packages) {
-    const range = pkg.engines?.[key]
-    if (typeof range !== 'undefined' && range !== '*') {
-      ranges.push({ package: pkg.name, version: pkg.version, range })
-    }
-  }
-  return ranges
-}
-
-/**
- * Collects engine range entries for a given key from latest package versions.
- * @param {Package[]} packages List of packages to inspect.
- * @param {string} key The engine key (e.g. "node").
- * @returns {RangeEntry[]} Array of range entries from latest versions.
- */
-function collectLatestRanges(packages: Package[], key: string): RangeEntry[] {
-  const ranges: RangeEntry[] = []
-  for (const pkg of packages) {
-    const range = pkg.latestEngines?.[key]
-    if (typeof range !== 'undefined' && range !== '*') {
-      ranges.push({ package: pkg.name, version: pkg.latestVersion ?? pkg.version, range })
-    }
-  }
-  return ranges
-}
+import type { Package, AnalysisTarget, ManagerType } from '../types.ts'
+import { analyzeTarget } from './intersect.ts'
 
 /**
  * Analyzes engine constraints across all packages for node and the active manager.
@@ -42,35 +8,7 @@ function collectLatestRanges(packages: Package[], key: string): RangeEntry[] {
  * @returns {AnalysisTarget[]} Array of analysis targets with intersection results.
  */
 export function analyzeEngines(packages: Package[], manager: ManagerType): AnalysisTarget[] {
-  const targets: AnalysisTarget[] = []
-  const keys = ['node', manager]
-
-  for (const key of keys) {
-    const ranges = collectRanges(packages, key)
-    const latestRanges = collectLatestRanges(packages, key)
-
-    if (ranges.length === 0 && latestRanges.length === 0) continue
-
-    const { intersection, conflicts, invalid } = computeIntersection(ranges)
-    const {
-      intersection: latestIntersection,
-      conflicts: latestConflicts,
-      invalid: latestInvalid
-    } = computeIntersection(latestRanges)
-
-    targets.push({
-      name: key,
-      source: 'engines',
-      ranges,
-      intersection,
-      conflicts,
-      invalidRanges: invalid,
-      latestRanges,
-      latestIntersection,
-      latestConflicts,
-      latestInvalidRanges: latestInvalid
-    })
-  }
-
-  return targets
+  return ['node', manager].flatMap(
+    key => analyzeTarget(packages, key, 'engines', declared => declared.engines?.[key]) ?? []
+  )
 }
